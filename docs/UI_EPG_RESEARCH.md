@@ -117,3 +117,17 @@ Home should prioritize actual watching, not promotional cards:
 - TiviMate community: https://www.reddit.com/r/TiviMate/
 - EPG source reliability discussion: https://www.reddit.com/r/TiviMate/comments/1e72m7p/better_epg_sources/
 - Simplified guide/UI discussion: https://www.reddit.com/r/TiviMate/comments/j2fslk/i_designed_a_simplified_interface_of_the_tivimate/
+
+
+## Live picture while browsing the EPG (user requirement)
+
+**Required behavior:** Keep the currently playing TV channel visible in a compact floating preview window while the user opens and browses the EPG (picture-in-guide / mini-player), matching the familiar experience in established IPTV apps.
+
+- Default preview position: top-right corner, above guide content; keep channel/program rows and timeline readable and avoid covering the focused item.
+- Audio/video continue uninterrupted when entering the guide; do not create a second player or restart playback.
+- Preview shows live video plus a subtle channel name and LIVE indicator; controls appear on focus/tap (mute, return to fullscreen, close/hide preview).
+- Selecting a channel/program can tune the existing player; provide a clear action to return to fullscreen.
+- TV remote: preview is a D-pad focus target; Back returns focus/guide before unexpectedly exiting playback. Phone/tablet: draggable preview with sensible safe-area bounds.
+- Keep preview optional in settings and automatically disable/reduce it on devices where concurrent video rendering is unsupported or performance is poor. Never silently stop audio/video.
+- Implementation direction: reuse the single Media3 player instance and render its video surface in the mini-player container; guide remains an overlay/screen alongside it. Preserve playback state and avoid duplicate decoders.
+- Acceptance: entering/leaving guide does not interrupt stream; mini video remains live during guide scroll; focus is never trapped; expand restores fullscreen; memory/performance fallback is tested.
