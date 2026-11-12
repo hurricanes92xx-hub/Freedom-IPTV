@@ -381,7 +381,7 @@ private fun FreedomApp() {
                                         Spacer(Modifier.weight(1f)); Text(if(scheduleLoading) "LOADING" else "ESPN", color = Color(0xFF9BA8BA), fontSize = 11.sp)
                                     }
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        items(listOf(Competition.NFL, Competition.NBA, Competition.MLB, Competition.NHL, Competition.WNBA, Competition.MLS, Competition.NCAAF_FBS, Competition.NCAAF_FCS)) { comp ->
+                                        items(listOf(Competition.NFL, Competition.NBA, Competition.MLB, Competition.NHL, Competition.WNBA, Competition.MLS, Competition.NCAAF_FBS, Competition.NCAAF_FCS, Competition.NCAAM_D1, Competition.NCAAM_D2, Competition.NCAAM_D3, Competition.NCAAW_D1, Competition.NCAAW_D2, Competition.NCAAW_D3, Competition.NCAAVB_W, Competition.NCAABASE, Competition.NCAAGYM_W)) { comp ->
                                             FilterChip(selected = selectedCompetition == comp, onClick = { selectedCompetition = comp }, label = { Text(comp.label) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = FreedomRed, selectedLabelColor = Color.White))
                                         }
                                     }
