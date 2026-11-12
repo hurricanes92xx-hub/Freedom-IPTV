@@ -4,6 +4,7 @@ import com.hurricanes92xx.freedomiptv.sports.model.Game
 import com.hurricanes92xx.freedomiptv.sports.model.Competition
 import com.hurricanes92xx.freedomiptv.sports.data.SportsScheduleRepository
 import com.hurricanes92xx.freedomiptv.sports.data.CombatScheduleProvider
+import com.hurricanes92xx.freedomiptv.sports.data.SportsArtworkCache
 import com.hurricanes92xx.freedomiptv.sports.model.CombatEvent
 import com.hurricanes92xx.freedomiptv.sports.model.CombatPromotion
 
@@ -352,6 +353,8 @@ private fun FreedomApp() {
                         var scheduleDayOffset by remember { mutableIntStateOf(0) }
                         var scheduledGames by remember { mutableStateOf<List<Game>>(emptyList()) }
                         var scheduleLoading by remember { mutableStateOf(false) }
+                        val appContext = LocalContext.current
+                        val artworkCache = remember { SportsArtworkCache(appContext) }
                         val combatProvider = remember { CombatScheduleProvider() }
                         var selectedPromotion by remember { mutableStateOf(CombatPromotion.WWE) }
                         var combatEvents by remember { mutableStateOf<List<CombatEvent>>(emptyList()) }
@@ -363,6 +366,7 @@ private fun FreedomApp() {
                             val from = day.atStartOfDay(zone).toInstant().toEpochMilli()
                             val to = day.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1L
                             combatEvents = runCatching { combatProvider.events(selectedPromotion, from, to) }.getOrDefault(emptyList())
+                            artworkCache.putAll(combatEvents.mapNotNull { event -> event.posterUrl?.let { event.id to it } }.toMap())
                             combatLoading = false
                         }
                         LaunchedEffect(selectedCompetition, scheduleDayOffset) {
@@ -423,7 +427,7 @@ private fun FreedomApp() {
                                     else combatEvents.take(12).forEach { event ->
                                         Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
                                             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                AsyncImage(model = event.posterUrl, contentDescription = event.title, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)))
+                                                AsyncImage(model = artworkCache.get(event.id) ?: event.posterUrl, contentDescription = event.title, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)))
                                                 Column(Modifier.padding(start = 12.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                                     Text(event.title, color = Color.White, fontWeight = FontWeight.Bold)
                                                     Text(SimpleDateFormat("EEE, h:mm a", Locale.getDefault()).format(Date(event.startUtcMillis)), color = Color.LightGray, fontSize = 12.sp)
