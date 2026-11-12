@@ -14,6 +14,7 @@ data class XtreamCredentials(val server: String, val username: String, val passw
 data class XtreamCategory(val id: String, val name: String)
 data class XtreamLiveChannel(val id: String, val name: String, val categoryId: String?, val icon: String?, val epgId: String?, val streamUrl: String)
 data class XtreamLiveCatalog(val categories: List<XtreamCategory>, val channels: List<XtreamLiveChannel>)
+data class XtreamProgramme(val id: String?, val title: String, val description: String, val startEpochSeconds: Long, val endEpochSeconds: Long, val language: String?)
 
 class XtreamApi(
     private val client: OkHttpClient = OkHttpClient.Builder()
@@ -71,6 +72,35 @@ class XtreamApi(
         }
         XtreamLiveCatalog(categoryList, channelList)
     }
+    suspend fun getShortEpg(credentials: XtreamCredentials, streamId: String, limit: Int = 10): List<XtreamProgramme> = getEpg(credentials, streamId, "get_short_epg", limit.coerceIn(1, 100))
+    suspend fun getChannelEpg(credentials: XtreamCredentials, streamId: String): List<XtreamProgramme> = getEpg(credentials, streamId, "get_simple_data_table", null)
+
+    private suspend fun getEpg(credentials: XtreamCredentials, streamId: String, action: String, limit: Int?): List<XtreamProgramme> = withContext(Dispatchers.IO) {
+        require(streamId.isNotBlank()) { "Channel ID is required." }
+        val requestUrl = url(credentials, action).newBuilder().addQueryParameter("stream_id", streamId)
+            .apply { if (limit != null) addQueryParameter("limit", limit.toString()) }.build()
+        client.newCall(Request.Builder().url(requestUrl).get().build()).execute().use { response ->
+            if (!response.isSuccessful) throw IllegalStateException("EPG request failed (HTTP ${response.code}).")
+            val root = JSONObject(response.body?.string().orEmpty())
+            val rows = root.optJSONArray("epg_listings") ?: root.optJSONArray("data") ?: JSONArray()
+            buildList {
+                for (i in 0 until rows.length()) {
+                    val item = rows.optJSONObject(i) ?: continue
+                    val start = item.optLong("start_timestamp", 0L).takeIf { it > 0 } ?: parseEpgTime(item.optString("start"))
+                    val end = item.optLong("stop_timestamp", 0L).takeIf { it > 0 } ?: parseEpgTime(item.optString("end"))
+                    if (start <= 0 || end <= start) continue
+                    val rawTitle = item.optString("title")
+                    val rawDescription = item.optString("description")
+                    add(XtreamProgramme(item.optString("id").takeIf(String::isNotBlank), decodeEpgText(rawTitle), decodeEpgText(rawDescription), start, end, item.optString("lang").takeIf(String::isNotBlank)))
+                }
+            }.sortedBy { it.startEpochSeconds }
+        }
+    }
+    private fun decodeEpgText(value: String): String = runCatching { String(java.util.Base64.getDecoder().decode(value), Charsets.UTF_8) }.getOrDefault(value)
+    private fun parseEpgTime(value: String): Long = runCatching {
+        java.time.LocalDateTime.parse(value, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")).toEpochSecond(java.time.ZoneOffset.UTC)
+    }.getOrDefault(0L)
+
     private fun streamUrl(credentials: XtreamCredentials, id: String): String =
         "${base(credentials)}/live/${credentials.username.encode()}/${credentials.password.encode()}/$id.m3u8"
     private fun String.encode(): String = java.net.URLEncoder.encode(this, Charsets.UTF_8.name())
