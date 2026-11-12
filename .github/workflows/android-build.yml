@@ -22,6 +22,13 @@ jobs:
           accept-android-sdk-licenses: true
           packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
       - uses: gradle/actions/setup-gradle@v5
+      - name: Run credential regression tests on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          script: gradle --no-daemon connectedDebugAndroidTest
       - name: Build debug APK
         run: gradle --no-daemon assembleDebug
       - name: Upload debug APK
