@@ -108,6 +108,8 @@ private fun FreedomApp() {
     var vodPlayingUrl by remember { mutableStateOf<String?>(null) }
     var guideBusy by remember { mutableStateOf(false) }
     var guideMessage by remember { mutableStateOf("Connect a provider to load the guide.") }
+    var guideUpdatedAt by remember { mutableStateOf<String?>(null) }
+    var guideSearch by remember { mutableStateOf("") }
     var guide by remember { mutableStateOf<Map<String, List<com.hurricanes92xx.freedomiptv.provider.xtream.XtreamProgramme>>>(emptyMap()) }
     var favorites by remember { mutableStateOf<Set<String>>(emptySet()) }
     val scope = rememberCoroutineScope()
@@ -437,15 +439,17 @@ private fun FreedomApp() {
                                                 async { limiter.withPermit { channel.id to api.getShortEpg(creds, channel.id, 8) } }
                                             }.awaitAll().toMap()
                                         }
+                                        guideUpdatedAt = SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date())
                                         guideMessage = "Guide loaded."
                                     } catch (e: Exception) {
                                         guideMessage = e.message ?: "Guide failed."
                                     } finally { guideBusy = false }
                                 }
                             }) { Text(if (guideBusy) "Loading…" else "Refresh guide") }
-                            Text(guideMessage, color = Color.LightGray)
+                            Text(guideMessage + (guideUpdatedAt?.let { " · Updated $it" } ?: ""), color = Color.LightGray)
+                            OutlinedTextField(value = guideSearch, onValueChange = { guideSearch = it }, label = { Text("Search guide channels") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                             LazyColumn {
-                                items(channels.filter { guide[it.id]?.isNotEmpty() == true }, key = { it.id }) { channel ->
+                                items(channels.filter { guide[it.id]?.isNotEmpty() == true && it.name.contains(guideSearch, ignoreCase = true) }, key = { it.id }) { channel ->
                                     Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth()) {
                                         Column(Modifier.padding(12.dp)) {
                                             Text(channel.name, color = FreedomRed, fontWeight = FontWeight.Bold)
