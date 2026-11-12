@@ -397,7 +397,7 @@ private fun FreedomApp() {
                                         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
                                             Box(Modifier.width(110.dp).height(160.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF202936)), contentAlignment = Alignment.Center) {
                                                 Text("🎬", fontSize = 30.sp)
-                                                AsyncImage(model = item.poster?.takeIf { it.isNotBlank() }, contentDescription = item.name, modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+                                                ArtworkFallbackImage(title = item.name, isSeries = isSeries, providerPoster = item.poster, modifier = Modifier.fillMaxSize())
                                             }
                                             Column(Modifier.padding(start = 14.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                                 Text(item.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
@@ -511,5 +511,40 @@ private fun EmptyState(message: String, action: () -> Unit) {
             Text(message, color = Color.LightGray)
             Button(onClick = action) { Text("Continue") }
         }
+    }
+}
+
+
+@Composable
+private fun ArtworkFallbackImage(title: String, isSeries: Boolean, providerPoster: String?, modifier: Modifier = Modifier) {
+    var fallbackUrl by remember(title, isSeries) { mutableStateOf<String?>(null) }
+    LaunchedEffect(title, isSeries, providerPoster) {
+        if (providerPoster.isNullOrBlank() && isSeries) fallbackUrl = TvmazeArtwork.lookup(title)
+    }
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Text("🎬", fontSize = 30.sp)
+        AsyncImage(model = providerPoster?.takeIf { it.isNotBlank() } ?: fallbackUrl, contentDescription = title, modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+    }
+}
+private object TvmazeArtwork {
+    private val cache = java.util.concurrent.ConcurrentHashMap<String, String>()
+    private val client = okhttp3.OkHttpClient.Builder().connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS).readTimeout(5, java.util.concurrent.TimeUnit.SECONDS).build()
+    suspend fun lookup(title: String): String? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val key = title.trim().lowercase()
+        cache[key]?.let { return@withContext it }
+        try {
+            val url = "https://api.tvmaze.com/search/shows?q=" + java.net.URLEncoder.encode(title, "UTF-8")
+            val request = okhttp3.Request.Builder().url(url).header("User-Agent", "FreedomIPTV/1.0").build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext null
+                val results = org.json.JSONArray(response.body?.string().orEmpty())
+                for (i in 0 until results.length()) {
+                    val image = results.optJSONObject(i)?.optJSONObject("show")?.optJSONObject("image")
+                    val poster = image?.optString("original")?.takeIf { it.isNotBlank() && it != "null" } ?: image?.optString("medium")?.takeIf { it.isNotBlank() && it != "null" }
+                    if (poster != null) { cache[key] = poster; return@withContext poster }
+                }
+            }
+        } catch (_: Exception) { }
+        null
     }
 }
