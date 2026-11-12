@@ -8,6 +8,8 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Public ESPN scoreboard adapter. Schedules are fetched by UTC date and cached by SportsHubCache/UI.
@@ -29,20 +31,20 @@ class EspnScheduleProvider(
         "ucl" to Feed("soccer", "uefa.champions")
     )
 
-    suspend fun schedule(competition: Competition, fromUtcMillis: Long, toUtcMillis: Long): List<Game> {
+    override suspend fun schedule(competition: Competition, fromUtcMillis: Long, toUtcMillis: Long): List<Game> = withContext(Dispatchers.IO) {
         val feed = feeds[competition.id] ?: return emptyList()
         if (toUtcMillis < fromUtcMillis) return emptyList()
         val start = Instant.ofEpochMilli(fromUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
         val end = Instant.ofEpochMilli(toUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
         val dates = generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }.take(15).toList()
-        return dates.flatMap { date ->
+        dates.flatMap { date ->
             val day = date.format(DateTimeFormatter.BASIC_ISO_DATE)
             val url = "https://site.api.espn.com/apis/site/v2/sports/${feed.sport}/${feed.league}/scoreboard?dates=$day"
             runCatching { fetch(url, competition.id) }.getOrDefault(emptyList())
         }.filter { it.startUtcMillis in fromUtcMillis..toUtcMillis }.distinctBy { it.id }.sortedBy { it.startUtcMillis }
     }
 
-    suspend fun liveScores(competition: Competition): List<Game> {
+    override suspend fun liveScores(competition: Competition): List<Game> = withContext(Dispatchers.IO) {
         val feed = feeds[competition.id] ?: return emptyList()
         val url = "https://site.api.espn.com/apis/site/v2/sports/${feed.sport}/${feed.league}/scoreboard"
         return runCatching { fetch(url, competition.id) }.getOrDefault(emptyList()).filter { it.state == GameState.LIVE }
