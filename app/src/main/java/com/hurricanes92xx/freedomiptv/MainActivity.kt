@@ -45,6 +45,8 @@ import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamLiveChannel
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamVodApi
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamVodItem
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamVodCategory
+import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamSeason
+import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamEpisode
 
 private val Context.favoriteStore by preferencesDataStore(name = "freedom_favorites")
 private val FAVORITE_IDS = stringSetPreferencesKey("channel_ids")
@@ -85,6 +87,9 @@ private fun FreedomApp() {
     var vodMessage by remember { mutableStateOf("Connect your Xtream provider to browse.") }
     var vodSeriesMode by remember { mutableStateOf(false) }
     var selectedVod by remember { mutableStateOf<XtreamVodItem?>(null) }
+    var seriesSeasons by remember { mutableStateOf<List<XtreamSeason>>(emptyList()) }
+    var selectedSeason by remember { mutableStateOf<String?>(null) }
+    var seriesBusy by remember { mutableStateOf(false) }
     var vodPlayingUrl by remember { mutableStateOf<String?>(null) }
     var guideBusy by remember { mutableStateOf(false) }
     var guideMessage by remember { mutableStateOf("Connect a provider to load the guide.") }
@@ -324,7 +329,7 @@ private fun FreedomApp() {
                                     Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth().clickable {
                                         selectedVod = item
                                         if (!isSeries) { vodPlayingUrl = credentials?.let { vodApi.movieUrl(it, item) }; currentChannel = null; page = "VOD Player" }
-                                        else vodMessage = "Series selected: ${item.name}. Season/episode detail will follow."
+                                        else { seriesBusy = true; seriesSeasons = emptyList(); selectedSeason = null; page = "Series Detail"; scope.launch { try { seriesSeasons = vodApi.seriesSeasons(credentials!!, item.id); selectedSeason = seriesSeasons.firstOrNull()?.number; vodMessage = "${seriesSeasons.sumOf { it.episodes.size }} episodes loaded" } catch (e: Exception) { vodMessage = e.message ?: "Series detail failed" } finally { seriesBusy = false } } }
                                     }) {
                                         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
                                             AsyncImage(model = item.poster, contentDescription = item.name, modifier = Modifier.width(100.dp).height(145.dp).clip(RoundedCornerShape(8.dp)))
@@ -340,11 +345,11 @@ private fun FreedomApp() {
                             }
                         }
                     }
-                    "VOD Player" -> Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth()) {
+                    "Series Detail" -> {\n                        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {\n                            Row(verticalAlignment = Alignment.CenterVertically) { Button(onClick = { page = "Series" }) { Text("← Series") }; Text(selectedVod?.name ?: "Series", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 12.dp)) }\n                            Text(if(seriesBusy) "Loading seasons and episodes…" else vodMessage, color = Color.LightGray)\n                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { items(seriesSeasons, key = { it.number }) { season -> FilterChip(selected = selectedSeason == season.number, onClick = { selectedSeason = season.number }, label = { Text(season.name) }) } }\n                            val episodes = seriesSeasons.firstOrNull { it.number == selectedSeason }?.episodes.orEmpty()\n                            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) { items(episodes, key = { it.id }) { ep -> Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth().clickable { vodPlayingUrl = credentials?.let { vodApi.episodeUrl(it, ep) }; currentChannel = null; page = "VOD Player" }) { Column(Modifier.padding(14.dp)) { Text("Episode ${ep.episodeNumber}: ${ep.title}", color = Color.White, fontWeight = FontWeight.Bold); ep.plot?.let { Text(it, color = Color.LightGray, maxLines = 3) }; Text("▶ Play episode", color = FreedomRed) } } }\n                        }\n                    }\n                    "VOD Player" -> Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(selectedVod?.name ?: "Movie", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                             AndroidView(factory = { ctx -> PlayerView(ctx).apply { player = mediaPlayer.exoPlayer; useController = true } }, modifier = Modifier.fillMaxWidth().height(420.dp), update = { it.player = mediaPlayer.exoPlayer })
-                            Button(onClick = { mediaPlayer.exoPlayer.stop(); vodPlayingUrl = null; selectedVod = null; page = "Movies" }) { Text("Back to movies") }
+                            Button(onClick = { mediaPlayer.exoPlayer.stop(); vodPlayingUrl = null; page = if(vodSeriesMode) "Series Detail" else "Movies" }) { Text(if(vodSeriesMode) "Back to episodes" else "Back to movies") }
                         }
                     }
                     "Guide" -> {
