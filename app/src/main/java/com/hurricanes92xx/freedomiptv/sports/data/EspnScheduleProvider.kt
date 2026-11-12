@@ -20,7 +20,7 @@ class EspnScheduleProvider(
         .connectTimeout(8, TimeUnit.SECONDS).readTimeout(12, TimeUnit.SECONDS)
         .callTimeout(18, TimeUnit.SECONDS).build()
 ) {
-    private data class Feed(val sport: String, val league: String)
+    override val id: String = "espn"\n    override suspend fun teams(competition: Competition): List<Team> = emptyList()\n\n    private data class Feed(val sport: String, val league: String)
     private val feeds = mapOf(
         "nfl" to Feed("football", "nfl"),
         "ncaaf-fbs" to Feed("football", "college-football"),
