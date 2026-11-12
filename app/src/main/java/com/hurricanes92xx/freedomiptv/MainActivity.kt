@@ -334,22 +334,70 @@ private fun FreedomApp() {
                         }
                     }
                     "Sports" -> {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("SPORTS HUB • schedules & scores coming online", color = FreedomRed, fontWeight = FontWeight.Bold)
-                            Text("College: FBS/FCS football • men's & women's basketball D1–D3 • women's volleyball • baseball • women's gymnastics", color = Color.LightGray)
-                            Text("Pro: NFL, NBA, MLB, NHL, WNBA, MLS • soccer • combat • racing • tennis • golf", color = Color.LightGray)
-                            Text("Channel detection uses your Xtream lineup; a network match does not guarantee a specific game is airing.", color = Color(0xFF9BA8BA))
-                            Text("Sports channels from your provider", color = Color.LightGray)
-                            val categoryNames = categories.associate { it.id to it.name }
-                            val sportsTerms = Regex("sport|ncaa|college|basketball|volleyball|nba|wnba|nfl|nhl|mlb|soccer|football|ufc|mma|boxing|racing|f1|formula|tennis|golf|cricket|rugby|motorsport|wrestling|espn|fox sports|sky sports|be[in] sports", RegexOption.IGNORE_CASE)
-                            val sports = channels.filter { channel -> (channel.name + " " + (categoryNames[channel.categoryId] ?: "")).contains(sportsTerms) }
-                            if (sports.isEmpty()) EmptyState("No sports channels detected in the loaded lineup.") { page = "Live TV" }
-                            else LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                items(sports, key = { it.id }) { channel ->
-                                    Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth().clickable { currentChannel = channel; page = "Player" }) {
-                                        Text("▶  " + channel.name, color = Color.White, modifier = Modifier.padding(14.dp))
+                        val categoryNames = categories.associate { it.id to it.name }
+                        val sportsTerms = Regex("sport|ncaa|college|basketball|volleyball|nba|wnba|nfl|nhl|mlb|soccer|football|ufc|mma|boxing|wrestling|espn|fox sports|sky sports|bein sports", RegexOption.IGNORE_CASE)
+                        val sports = channels.filter { channel -> (channel.name + " " + (categoryNames[channel.categoryId] ?: "")).contains(sportsTerms) }
+                        var sportFilter by remember { mutableStateOf("All") }
+                        val filterTerms = mapOf("Football" to Regex("football|nfl|college football", RegexOption.IGNORE_CASE), "Basketball" to Regex("basketball|nba|wnba", RegexOption.IGNORE_CASE), "Baseball" to Regex("baseball|mlb", RegexOption.IGNORE_CASE), "Hockey" to Regex("hockey|nhl", RegexOption.IGNORE_CASE), "Soccer" to Regex("soccer|mls|epl|champions league", RegexOption.IGNORE_CASE), "Volleyball" to Regex("volleyball", RegexOption.IGNORE_CASE), "Combat" to Regex("ufc|mma|boxing", RegexOption.IGNORE_CASE), "Wrestling" to Regex("wwe|aew|tna|wrestling", RegexOption.IGNORE_CASE))
+                        val visibleSports = sports.filter { sportFilter == "All" || (it.name + " " + (categoryNames[it.categoryId] ?: "")).contains(filterTerms[sportFilter] ?: Regex("(?!)") }
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(bottom = 28.dp)) {
+                            item {
+                                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF151D2B)), shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
+                                    Box(Modifier.background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color(0xFF242E46), Color(0xFF101620)))).padding(24.dp)) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text("FREEDOM  /  SPORTS", color = FreedomRed, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                                                Spacer(Modifier.weight(1f))
+                                                Text("LIVE • YOUR LINEUP", color = Color(0xFF9BA8BA), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                            Text("Every game.\nOne hub.", color = Color.White, fontSize = 36.sp, lineHeight = 39.sp, fontWeight = FontWeight.Black)
+                                            Text("A fast, unified home for the sports you follow.", color = Color(0xFFBAC5D5), fontSize = 14.sp)
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Surface(color = FreedomRed, shape = RoundedCornerShape(8.dp)) { Text(" ${sports.size} SPORTS CHANNELS ", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp)) }
+                                                Surface(color = Color(0xFF273348), shape = RoundedCornerShape(8.dp)) { Text(if (connected) " PROVIDER CONNECTED " else " CONNECT TO WATCH ", color = Color(0xFFD8E2F0), fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp)) }
+                                            }
+                                        }
                                     }
                                 }
+                            }
+                            item {
+                                Text("EXPLORE SPORTS", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(9.dp))
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    items(listOf("All", "Football", "Basketball", "Baseball", "Hockey", "Soccer", "Volleyball", "Combat", "Wrestling")) { name ->
+                                        FilterChip(selected = sportFilter == name, onClick = { sportFilter = name }, label = { Text(name) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = FreedomRed, selectedLabelColor = Color.White))
+                                    }
+                                }
+                            }
+                            item {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("YOUR SPORTS CHANNELS", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                                    Spacer(Modifier.weight(1f))
+                                    Text("${visibleSports.size} FOUND", color = Color(0xFF8F9DB2), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                            if (visibleSports.isEmpty()) item {
+                                Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+                                    Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Text(if (!connected) "Connect your provider" else "No channels in this category", color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                                        Text(if (!connected) "Your sports lineup will appear here automatically after Xtream connection." else "Try another sport or refresh your Live TV catalog.", color = Color.LightGray)
+                                        Button(onClick = { page = if (connected) "Live TV" else "Add Provider" }) { Text(if (connected) "Browse Live TV" else "Connect provider") }
+                                    }
+                                }
+                            } else items(visibleSports, key = { it.id }) { channel ->
+                                Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(15.dp), modifier = Modifier.fillMaxWidth().clickable { currentChannel = channel; page = "Player" }) {
+                                    Row(Modifier.padding(horizontal = 16.dp, vertical = 15.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFF202B3D)), contentAlignment = Alignment.Center) { Text("▶", color = FreedomRed, fontSize = 18.sp) }
+                                        Column(Modifier.padding(start = 13.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                            Text(channel.name, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                                            Text(categoryNames[channel.categoryId] ?: "SPORTS", color = Color(0xFF8F9DB2), fontSize = 11.sp)
+                                        }
+                                        Text("WATCH  ›", color = FreedomRed, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                            item {
+                                Text("Broadcast availability is matched against your provider lineup and guide data. A network match alone does not confirm a specific game.", color = Color(0xFF8290A4), fontSize = 12.sp)
                             }
                         }
                     }
