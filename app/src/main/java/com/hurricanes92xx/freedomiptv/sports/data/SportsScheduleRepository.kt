@@ -72,13 +72,14 @@ class ApiFootballScheduleProvider(
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             if (apiKey.isBlank() || competition.sport != Sport.SOCCER) return@withContext emptyList()
             val league = when (competition) { Competition.EPL -> "39"; Competition.UCL -> "2"; Competition.MLS -> "253"; else -> return@withContext emptyList() }
-            val season = java.time.Instant.ofEpochMilli(fromUtcMillis).atZone(java.time.ZoneOffset.UTC).year
             val start = java.time.Instant.ofEpochMilli(fromUtcMillis).atZone(java.time.ZoneOffset.UTC).toLocalDate()
             val end = java.time.Instant.ofEpochMilli(toUtcMillis).atZone(java.time.ZoneOffset.UTC).toLocalDate()
             val out = mutableListOf<Game>()
             var date = start
             while (!date.isAfter(end) && out.size < 500) {
-                val url = "https://v3.football.api-sports.io/fixtures?league=$league&season=$season&date=$date"
+                // European leagues use seasons spanning two calendar years; MLS follows calendar years.
+                val seasonYear = if (competition == Competition.MLS || date.monthValue >= 7) date.year else date.year - 1
+                val url = "https://v3.football.api-sports.io/fixtures?league=$league&season=$seasonYear&date=$date"
                 runCatching {
                     val req = okhttp3.Request.Builder().url(url).header("x-apisports-key",apiKey).build()
                     client.newCall(req).execute().use { response ->
