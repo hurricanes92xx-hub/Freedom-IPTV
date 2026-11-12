@@ -9,18 +9,19 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      # setup-android attempts to install the obsolete "tools" SDK package.
-      # Install only current command-line tools and the SDK platforms we need.
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: 'latest'
+      # GitHub's Ubuntu runner already includes Android command-line tools.
+      # Avoid setup-android, which still requests the removed SDK "tools" package.
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses
       - name: Install Android SDK packages
         run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
       - uses: gradle/actions/setup-gradle@v4
