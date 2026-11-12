@@ -129,8 +129,9 @@ private fun FreedomApp() {
             if (legacyPassword.isNotBlank()) context.favoriteStore.edit { it.remove(LEGACY_PROVIDER_PASSWORD) }
             encryptedPassword
         } else if (legacyPassword.isNotBlank()) {
-            vault.savePassword(legacyPassword) // synchronous; failure leaves legacy password intact
-            context.favoriteStore.edit { it.remove(LEGACY_PROVIDER_PASSWORD) }
+            if (vault.savePassword(legacyPassword)) {
+                context.favoriteStore.edit { it.remove(LEGACY_PROVIDER_PASSWORD) }
+            }
             legacyPassword
         } else ""
         providerLoaded = true
@@ -209,7 +210,7 @@ private fun FreedomApp() {
                                             val catalog = api.loadLiveCatalog(creds)
                                             credentials = creds; categories = catalog.categories; channels = catalog.channels
                                             // Save secret first; publish metadata only after encrypted write succeeds.
-                                            CredentialVault(context).savePassword(creds.password)
+                                            check(CredentialVault(context).savePassword(creds.password)) { "Could not securely save provider password." }
                                             context.favoriteStore.edit { prefs ->
                                                 prefs[PROVIDER_SERVER] = creds.server
                                                 prefs[PROVIDER_USERNAME] = creds.username
@@ -225,7 +226,7 @@ private fun FreedomApp() {
                                 OutlinedButton(enabled = !busy, onClick = {
                                     scope.launch {
                                         // Clear encrypted secret and metadata together from the user's perspective.
-                                        CredentialVault(context).clearPassword()
+                                        check(CredentialVault(context).clearPassword()) { "Could not securely clear provider password." }
                                         context.favoriteStore.edit { prefs ->
                                             prefs.remove(PROVIDER_SERVER)
                                             prefs.remove(PROVIDER_USERNAME)
