@@ -12,7 +12,7 @@ import androidx.media3.ui.PlayerView
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import com.hurricanes92xx.freedomiptv.player.FreedomPlayer
-import com.hurricanes92xx.freedomiptv.security.CredentialVault
+import com.hurricanes92.freedomiptv.security.CredentialVault
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
