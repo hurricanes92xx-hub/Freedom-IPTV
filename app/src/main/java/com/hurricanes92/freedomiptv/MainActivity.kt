@@ -460,7 +460,7 @@ private fun FreedomApp() {
                                                 AsyncImage(model = game.away.logoUrl, contentDescription = game.away.name, modifier = Modifier.size(42.dp))
                                                 Column(Modifier.padding(horizontal = 10.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                                     Text("${game.away.shortName ?: game.away.name} @ ${game.home.shortName ?: game.home.name}", color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                    Text(SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(game.startUtcMillis)) + (game.venue?.let { " • $it" } ?: ""), color = Color.LightGray, fontSize = 12.sp)
+                                                    Text((if(game.state == GameState.LIVE) "LIVE • " else "") + SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(game.startUtcMillis)) + (game.venue?.let { " • $it" } ?: ""), color = if(game.state == GameState.LIVE) Color(0xFFFFD166) else Color.LightGray, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                 }
                                                 AsyncImage(model = game.home.logoUrl, contentDescription = game.home.name, modifier = Modifier.size(42.dp))
                                                 Spacer(Modifier.width(10.dp))
