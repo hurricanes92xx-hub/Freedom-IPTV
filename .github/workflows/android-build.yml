@@ -10,20 +10,28 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      ANDROID_HOME: /usr/local/lib/android/sdk
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      ANDROID_HOME: ${{ runner.temp }}/android-sdk
+      ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      # GitHub's Ubuntu runner already includes Android command-line tools.
-      # Avoid setup-android, which still requests the removed SDK "tools" package.
-      - name: Accept Android SDK licenses
-        run: yes | sdkmanager --licenses
+      - name: Install Android command-line tools
+        run: |
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip -o "$RUNNER_TEMP/cmdline-tools.zip"
+          mkdir -p "$RUNNER_TEMP/cmdline-tools-unpack"
+          unzip -q "$RUNNER_TEMP/cmdline-tools.zip" -d "$RUNNER_TEMP/cmdline-tools-unpack"
+          mkdir -p "$ANDROID_HOME/cmdline-tools/latest"
+          mv "$RUNNER_TEMP/cmdline-tools-unpack/cmdline-tools/"* "$ANDROID_HOME/cmdline-tools/latest/"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
       - name: Install Android SDK packages
-        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
       - uses: gradle/actions/setup-gradle@v4
       - name: Assemble debug APK
         run: gradle --no-daemon assembleDebug
