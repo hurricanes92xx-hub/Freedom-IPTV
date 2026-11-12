@@ -224,6 +224,8 @@ private fun FreedomApp() {
                                 OutlinedButton(onClick = { server = "https://"; username = ""; password = ""; result = null }) { Text("Clear") }
                                 OutlinedButton(enabled = !busy, onClick = {
                                     scope.launch {
+                                        // Clear encrypted secret and metadata together from the user's perspective.
+                                        CredentialVault(context).clearPassword()
                                         context.favoriteStore.edit { prefs ->
                                             prefs.remove(PROVIDER_SERVER)
                                             prefs.remove(PROVIDER_USERNAME)
