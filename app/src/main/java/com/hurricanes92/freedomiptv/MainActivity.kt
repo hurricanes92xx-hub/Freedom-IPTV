@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -377,6 +378,15 @@ private fun FreedomApp() {
                             val to = day.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1L
                             scheduledGames = runCatching { scheduleProvider.schedule(selectedCompetition, from, to) }.getOrDefault(emptyList())
                             scheduleLoading = false
+                        }
+                        LaunchedEffect(selectedCompetition, scheduleDayOffset) {
+                            if (scheduleDayOffset == 0) {
+                                while (true) {
+                                    delay(60_000L)
+                                    val live = runCatching { scheduleProvider.liveScores(selectedCompetition) }.getOrDefault(emptyList()).associateBy { it.id }
+                                    if (live.isNotEmpty()) scheduledGames = scheduledGames.map { live[it.id] ?: it }
+                                }
+                            }
                         }
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(bottom = 28.dp)) {
                             item {
