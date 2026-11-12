@@ -481,16 +481,27 @@ private fun FreedomApp() {
                                     try {
                                         val creds = credentials ?: error("Connect first.")
                                         val epgChannels = channels
-                                        val limiter = Semaphore(6)
-                                        guide = coroutineScope {
+                                        val cache = com.hurricanes92xx.freedomiptv.provider.xtream.EpgCache(context)
+                                        val cached = epgChannels.mapNotNull { ch -> cache.read(creds, ch.id)?.let { ch.id to it } }.toMap()
+                                        if (cached.isNotEmpty()) { guide = cached; guideMessage = "Showing cached guide while refreshing…" }
+                                        val limiter = Semaphore(4)
+                                        val fetched = coroutineScope {
                                             epgChannels.map { channel ->
                                                 async { limiter.withPermit { channel.id to api.getShortEpg(creds, channel.id, 8) } }
                                             }.awaitAll().toMap()
                                         }
+                                        fetched.forEach { (id, programmes) -> cache.write(creds, id, programmes) }
+                                        guide = fetched
                                         guideUpdatedAt = SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date())
-                                        guideMessage = "Guide loaded."
+                                        guideMessage = "Guide refreshed (${fetched.size} channels)."
                                     } catch (e: Exception) {
-                                        guideMessage = e.message ?: "Guide failed."
+                                        val creds = credentials
+                                        if (creds != null) {
+                                            val cache = com.hurricanes92xx.freedomiptv.provider.xtream.EpgCache(context)
+                                            val stale = channels.mapNotNull { ch -> cache.readStale(creds, ch.id)?.let { ch.id to it } }.toMap()
+                                            if (stale.isNotEmpty()) guide = stale
+                                        }
+                                        guideMessage = "Refresh failed; showing saved guide if available. ${e.message ?: "network error"}"
                                     } finally { guideBusy = false }
                                 }
                             }) { Text(if (guideBusy) "Loading…" else "Refresh guide") }
