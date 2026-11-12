@@ -33,6 +33,7 @@ import kotlinx.coroutines.sync.withPermit
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.first
 import android.content.Context
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamApi
@@ -42,6 +43,9 @@ import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamLiveChannel
 
 private val Context.favoriteStore by preferencesDataStore(name = "freedom_favorites")
 private val FAVORITE_IDS = stringSetPreferencesKey("channel_ids")
+private val PROVIDER_SERVER = stringPreferencesKey("provider_server")
+private val PROVIDER_USERNAME = stringPreferencesKey("provider_username")
+private val PROVIDER_PASSWORD = stringPreferencesKey("provider_password")
 
 private val FreedomRed = Color(0xFFF04452)
 private val FreedomBlue = Color(0xFF2878FF)
@@ -58,6 +62,7 @@ private fun FreedomApp() {
     var server by remember { mutableStateOf("https://") }
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var providerLoaded by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<String?>(null) }
     var connected by remember { mutableStateOf(false) }
@@ -73,7 +78,14 @@ private fun FreedomApp() {
     var favorites by remember { mutableStateOf<Set<String>>(emptySet()) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    LaunchedEffect(Unit) { favorites = context.favoriteStore.data.first()[FAVORITE_IDS] ?: emptySet() }
+    LaunchedEffect(Unit) {
+        val prefs = context.favoriteStore.data.first()
+        favorites = prefs[FAVORITE_IDS] ?: emptySet()
+        server = prefs[PROVIDER_SERVER] ?: "https://"
+        username = prefs[PROVIDER_USERNAME] ?: ""
+        password = prefs[PROVIDER_PASSWORD] ?: ""
+        providerLoaded = true
+    }
     fun updateFavorites(next: Set<String>) { favorites = next; scope.launch { context.favoriteStore.edit { prefs -> prefs[FAVORITE_IDS] = next } } }
     val api = remember { XtreamApi() }
     val mediaPlayer = remember { FreedomPlayer(context) }
@@ -114,6 +126,7 @@ private fun FreedomApp() {
                                             val auth = api.authenticate(creds)
                                             val catalog = api.loadLiveCatalog(creds)
                                             credentials = creds; categories = catalog.categories; channels = catalog.channels
+                                            context.favoriteStore.edit { prefs -> prefs[PROVIDER_SERVER] = creds.server; prefs[PROVIDER_USERNAME] = creds.username; prefs[PROVIDER_PASSWORD] = creds.password }
                                             connected = true; selectedCategory = "all"; page = "Live TV"
                                             result = "Loaded ${catalog.channels.size} channels • ${catalog.categories.size} categories • ${auth.status ?: "Active"}"
                                         } catch (e: Exception) { connected = false; result = e.message ?: "Connection failed." }
