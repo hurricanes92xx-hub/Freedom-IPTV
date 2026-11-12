@@ -216,7 +216,27 @@ private fun FreedomApp() {
                             result?.let { Text(it, color = if (connected) Color(0xFF70D6A0) else Color(0xFFFF8A92)) }
                         }
                     }
-                    "Playlist" -> {\n                        Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){ Button(enabled=!playlistBusy,onClick={playlistPicker.launch(arrayOf("audio/x-mpegurl","application/vnd.apple.mpegurl","text/plain"))}){Text(if(playlistBusy) "Importing…" else "Import M3U")} Text(playlistMessage,color=Color.LightGray) }\n                        LazyColumn(verticalArrangement=Arrangement.spacedBy(6.dp)){items(playlistChannels,key={it.url}){ ch -> Card(colors=CardDefaults.cardColors(containerColor=Panel),modifier=Modifier.fillMaxWidth().clickable { currentChannel=XtreamLiveChannel(ch.url,ch.name,null,ch.logo,ch.tvgId,ch.url);page="Player" }){Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically){AsyncImage(model=ch.logo,contentDescription=null,modifier=Modifier.size(42.dp).clip(RoundedCornerShape(6.dp)));Text(ch.name,color=Color.White,modifier=Modifier.padding(start=12.dp).weight(1f));Text("▶",color=FreedomRed)} } } }\n                    }\n                    "Live TV", "Search" -> {
+                    "Playlist" -> {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Button(enabled = !playlistBusy, onClick = { playlistPicker.launch(arrayOf("audio/x-mpegurl", "application/vnd.apple.mpegurl", "text/plain")) }) { Text(if (playlistBusy) "Importing…" else "Import M3U") }
+                            Text(playlistMessage, color = Color.LightGray)
+                        }
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(playlistChannels, key = { it.url }) { ch ->
+                                Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth().clickable {
+                                    currentChannel = XtreamLiveChannel(ch.url, ch.name, null, ch.logo, ch.tvgId, ch.url)
+                                    page = "Player"
+                                }) {
+                                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        AsyncImage(model = ch.logo, contentDescription = null, modifier = Modifier.size(42.dp).clip(RoundedCornerShape(6.dp)))
+                                        Text(ch.name, color = Color.White, modifier = Modifier.padding(start = 12.dp).weight(1f))
+                                        Text("▶", color = FreedomRed)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    "Live TV", "Search" -> {
                         if (!connected || channels.isEmpty()) EmptyState("Connect a provider to load channels.") { page = "Add Provider" }
                         else Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
