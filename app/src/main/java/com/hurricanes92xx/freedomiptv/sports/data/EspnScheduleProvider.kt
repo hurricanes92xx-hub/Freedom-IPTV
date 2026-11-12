@@ -32,8 +32,8 @@ class EspnScheduleProvider(
     )
 
     override suspend fun schedule(competition: Competition, fromUtcMillis: Long, toUtcMillis: Long): List<Game> = withContext(Dispatchers.IO) {
-        val feed = feeds[competition.id] ?: return emptyList()
-        if (toUtcMillis < fromUtcMillis) return emptyList()
+        val feed = feeds[competition.id] ?: return@withContext emptyList()
+        if (toUtcMillis < fromUtcMillis) return@withContext emptyList()
         val start = Instant.ofEpochMilli(fromUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
         val end = Instant.ofEpochMilli(toUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
         val dates = generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }.take(15).toList()
@@ -45,9 +45,9 @@ class EspnScheduleProvider(
     }
 
     override suspend fun liveScores(competition: Competition): List<Game> = withContext(Dispatchers.IO) {
-        val feed = feeds[competition.id] ?: return emptyList()
+        val feed = feeds[competition.id] ?: return@withContext emptyList()
         val url = "https://site.api.espn.com/apis/site/v2/sports/${feed.sport}/${feed.league}/scoreboard"
-        return runCatching { fetch(url, competition.id) }.getOrDefault(emptyList()).filter { it.state == GameState.LIVE }
+        runCatching { fetch(url, competition.id) }.getOrDefault(emptyList()).filter { it.state == GameState.LIVE }
     }
 
     private fun fetch(url: String, competitionId: String): List<Game> {
