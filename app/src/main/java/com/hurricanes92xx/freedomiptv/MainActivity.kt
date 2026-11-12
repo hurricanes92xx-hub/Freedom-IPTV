@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
 import androidx.media3.ui.PlayerView
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -41,6 +42,9 @@ import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamApi
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamCredentials
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamCategory
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamLiveChannel
+import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamVodApi
+import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamVodItem
+import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamVodCategory
 
 private val Context.favoriteStore by preferencesDataStore(name = "freedom_favorites")
 private val FAVORITE_IDS = stringSetPreferencesKey("channel_ids")
@@ -73,6 +77,15 @@ private fun FreedomApp() {
     var selectedCategory by remember { mutableStateOf("all") }
     var search by remember { mutableStateOf("") }
     var currentChannel by remember { mutableStateOf<XtreamLiveChannel?>(null) }
+    var vodItems by remember { mutableStateOf<List<XtreamVodItem>>(emptyList()) }
+    var vodCategories by remember { mutableStateOf<List<XtreamVodCategory>>(emptyList()) }
+    var vodCategory by remember { mutableStateOf("all") }
+    var vodSearch by remember { mutableStateOf("") }
+    var vodBusy by remember { mutableStateOf(false) }
+    var vodMessage by remember { mutableStateOf("Connect your Xtream provider to browse.") }
+    var vodSeriesMode by remember { mutableStateOf(false) }
+    var selectedVod by remember { mutableStateOf<XtreamVodItem?>(null) }
+    var vodPlayingUrl by remember { mutableStateOf<String?>(null) }
     var guideBusy by remember { mutableStateOf(false) }
     var guideMessage by remember { mutableStateOf("Connect a provider to load the guide.") }
     var guide by remember { mutableStateOf<Map<String, List<com.hurricanes92xx.freedomiptv.provider.xtream.XtreamProgramme>>>(emptyMap()) }
@@ -88,6 +101,7 @@ private fun FreedomApp() {
         providerLoaded = true
     }
     val api = remember { XtreamApi() }
+    val vodApi = remember { XtreamVodApi() }
     LaunchedEffect(providerLoaded) {
         if (providerLoaded && username.isNotBlank() && password.isNotBlank() && server.startsWith("https://")) {
             busy = true
@@ -107,7 +121,7 @@ private fun FreedomApp() {
     fun updateFavorites(next: Set<String>) { favorites = next; scope.launch { context.favoriteStore.edit { prefs -> prefs[FAVORITE_IDS] = next } } }
     val mediaPlayer = remember { FreedomPlayer(context) }
     DisposableEffect(mediaPlayer) { onDispose { mediaPlayer.release() } }
-    LaunchedEffect(currentChannel?.id, currentChannel?.streamUrl) { currentChannel?.let { mediaPlayer.play(it.id, it.streamUrl) } }
+    LaunchedEffect(currentChannel?.id, currentChannel?.streamUrl, vodPlayingUrl) { val url = vodPlayingUrl ?: currentChannel?.streamUrl; if (url != null) mediaPlayer.play(currentChannel?.id ?: selectedVod?.id ?: "vod", url) }
 
     val filtered = channels.filter { (selectedCategory == "all" || it.categoryId == selectedCategory) && it.name.contains(search.trim(), true) }
     val categoryCounts = channels.groupingBy { it.categoryId }.eachCount()
@@ -133,7 +147,7 @@ private fun FreedomApp() {
                 Text("🦅 FREEDOM", color = Color.White, fontSize = 23.sp, fontWeight = FontWeight.Black)
                 Text("IPTV", color = FreedomRed, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(20.dp))
-                listOf("Home", "Live TV", "Guide", "Sports", "Favorites", "Search", "Settings", "Add Provider").forEach { item ->
+                listOf("Home", "Live TV", "Movies", "Series", "Guide", "Sports", "Favorites", "Search", "Settings", "Add Provider").forEach { item ->
                     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(if (page == item) FreedomRed.copy(alpha = 0.18f) else Color.Transparent).clickable { page = item }.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(item, color = if (page == item) FreedomRed else Color.LightGray, fontWeight = if (page == item) FontWeight.Bold else FontWeight.Normal)
                     }
@@ -269,6 +283,68 @@ private fun FreedomApp() {
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    "Movies", "Series" -> {
+                        val isSeries = page == "Series"
+                        LaunchedEffect(page, credentials) {
+                            if (credentials != null && (vodItems.isEmpty() || vodSeriesMode != isSeries)) {
+                                vodBusy = true; vodMessage = "Loading catalog…"
+                                try {
+                                    val c = credentials!!
+                                    vodCategories = if (isSeries) vodApi.seriesCategories(c) else vodApi.movieCategories(c)
+                                    vodItems = if (isSeries) vodApi.series(c) else vodApi.movies(c)
+                                    vodSeriesMode = isSeries; vodCategory = "all"
+                                    vodMessage = "${vodItems.size} titles loaded"
+                                } catch (e: Exception) { vodMessage = e.message ?: "Catalog failed." }
+                                finally { vodBusy = false }
+                            }
+                        }
+                        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedTextField(vodSearch, { vodSearch = it }, modifier = Modifier.weight(1f), label = { Text("Search titles") }, singleLine = true)
+                                Button(enabled = credentials != null && !vodBusy, onClick = {
+                                    scope.launch { vodBusy = true; try {
+                                        val c = credentials!!
+                                        vodCategories = if (isSeries) vodApi.seriesCategories(c) else vodApi.movieCategories(c)
+                                        vodItems = if (isSeries) vodApi.series(c) else vodApi.movies(c)
+                                        vodMessage = "${vodItems.size} titles loaded"
+                                    } catch (e: Exception) { vodMessage = e.message ?: "Load failed" } finally { vodBusy = false } }
+                                }) { Text("↻") }
+                            }
+                            Text(vodMessage, color = Color.LightGray)
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                item { FilterChip(selected = vodCategory == "all", onClick = { vodCategory = "all" }, label = { Text("All") }) }
+                                items(vodCategories, key = { it.id }) { cat -> FilterChip(selected = vodCategory == cat.id, onClick = { vodCategory = cat.id }, label = { Text(cat.name, maxLines = 1) }) }
+                            }
+                            val visibleVod = vodItems.filter { (vodCategory == "all" || it.categoryId == vodCategory) && it.name.contains(vodSearch.trim(), true) }
+                            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                items(visibleVod, key = { it.id }) { item ->
+                                    Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth().clickable {
+                                        selectedVod = item
+                                        if (!isSeries) { vodPlayingUrl = credentials?.let { vodApi.movieUrl(it, item) }; currentChannel = null; page = "VOD Player" }
+                                        else vodMessage = "Series selected: ${item.name}. Season/episode detail will follow."
+                                    }) {
+                                        Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            AsyncImage(model = item.poster, contentDescription = item.name, modifier = Modifier.width(100.dp).height(145.dp).clip(RoundedCornerShape(8.dp)))
+                                            Column(Modifier.padding(start = 14.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Text(item.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                                                item.rating?.let { Text("★ $it", color = FreedomRed) }
+                                                item.plot?.takeIf { it.isNotBlank() }?.let { Text(it, color = Color.LightGray, maxLines = 4) }
+                                                Text(if (isSeries) "Open series" else "▶ Play movie", color = FreedomRed, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    "VOD Player" -> Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(selectedVod?.name ?: "Movie", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                            AndroidView(factory = { ctx -> PlayerView(ctx).apply { player = mediaPlayer.exoPlayer; useController = true } }, modifier = Modifier.fillMaxWidth().height(420.dp), update = { it.player = mediaPlayer.exoPlayer })
+                            Button(onClick = { mediaPlayer.exoPlayer.stop(); vodPlayingUrl = null; selectedVod = null; page = "Movies" }) { Text("Back to movies") }
                         }
                     }
                     "Guide" -> {
