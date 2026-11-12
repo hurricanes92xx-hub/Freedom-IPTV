@@ -66,11 +66,11 @@ private fun FreedomApp() {
     var guideMessage by remember { mutableStateOf("Connect a provider to load the guide.") }
     var guide by remember { mutableStateOf<Map<String, List<com.hurricanes92xx.freedomiptv.provider.xtream.XtreamProgramme>>>(emptyMap()) }
     var favorites by remember { mutableStateOf<Set<String>>(emptySet()) }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     LaunchedEffect(Unit) { favorites = context.favoriteStore.data.first()[FAVORITE_IDS] ?: emptySet() }
     fun updateFavorites(next: Set<String>) { favorites = next; scope.launch { context.favoriteStore.edit { prefs -> prefs[FAVORITE_IDS] = next } } }
-    val scope = rememberCoroutineScope()
     val api = remember { XtreamApi() }
-    val context = LocalContext.current
     val mediaPlayer = remember { FreedomPlayer(context) }
     DisposableEffect(mediaPlayer) { onDispose { mediaPlayer.release() } }
     LaunchedEffect(currentChannel?.id, currentChannel?.streamUrl) { currentChannel?.let { mediaPlayer.play(it.id, it.streamUrl) } }
