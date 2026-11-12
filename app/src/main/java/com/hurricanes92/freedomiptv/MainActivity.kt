@@ -3,6 +3,9 @@ import com.hurricanes92xx.freedomiptv.sports.model.GameState
 import com.hurricanes92xx.freedomiptv.sports.model.Game
 import com.hurricanes92xx.freedomiptv.sports.model.Competition
 import com.hurricanes92xx.freedomiptv.sports.data.SportsScheduleRepository
+import com.hurricanes92xx.freedomiptv.sports.data.CombatScheduleProvider
+import com.hurricanes92xx.freedomiptv.sports.model.CombatEvent
+import com.hurricanes92xx.freedomiptv.sports.model.CombatPromotion
 
 import android.os.Bundle
 import android.net.Uri
@@ -349,6 +352,19 @@ private fun FreedomApp() {
                         var scheduleDayOffset by remember { mutableIntStateOf(0) }
                         var scheduledGames by remember { mutableStateOf<List<Game>>(emptyList()) }
                         var scheduleLoading by remember { mutableStateOf(false) }
+                        val combatProvider = remember { CombatScheduleProvider() }
+                        var selectedPromotion by remember { mutableStateOf(CombatPromotion.WWE) }
+                        var combatEvents by remember { mutableStateOf<List<CombatEvent>>(emptyList()) }
+                        var combatLoading by remember { mutableStateOf(false) }
+                        LaunchedEffect(selectedPromotion, scheduleDayOffset) {
+                            combatLoading = true
+                            val zone = java.time.ZoneId.systemDefault()
+                            val day = java.time.LocalDate.now(zone).plusDays(scheduleDayOffset.toLong())
+                            val from = day.atStartOfDay(zone).toInstant().toEpochMilli()
+                            val to = day.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1L
+                            combatEvents = runCatching { combatProvider.events(selectedPromotion, from, to) }.getOrDefault(emptyList())
+                            combatLoading = false
+                        }
                         LaunchedEffect(selectedCompetition, scheduleDayOffset) {
                             scheduleLoading = true
                             val zone = java.time.ZoneId.systemDefault()
@@ -395,6 +411,26 @@ private fun FreedomApp() {
                                         FilterChip(selected = scheduleDayOffset == 1, onClick = { scheduleDayOffset = 1 }, label = { Text("Tomorrow") })
                                         Text(java.time.LocalDate.now().plusDays(scheduleDayOffset.toLong()).format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d")), color = Color.LightGray, fontSize = 12.sp)
                                         OutlinedButton(onClick = { scheduleDayOffset++ }) { Text("›") }
+                                    }
+                                    Text("FIGHT NIGHT • EVENTS", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        items(CombatPromotion.values().toList()) { promotion ->
+                                            FilterChip(selected = selectedPromotion == promotion, onClick = { selectedPromotion = promotion }, label = { Text(promotion.label) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = FreedomRed, selectedLabelColor = Color.White))
+                                        }
+                                    }
+                                    if (combatLoading) Text("Loading fight calendar…", color = Color.LightGray)
+                                    else if (combatEvents.isEmpty()) Text("No fight events listed for this date.", color = Color.LightGray)
+                                    else combatEvents.take(12).forEach { event ->
+                                        Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+                                            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                AsyncImage(model = event.posterUrl, contentDescription = event.title, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)))
+                                                Column(Modifier.padding(start = 12.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    Text(event.title, color = Color.White, fontWeight = FontWeight.Bold)
+                                                    Text(SimpleDateFormat("EEE, h:mm a", Locale.getDefault()).format(Date(event.startUtcMillis)), color = Color.LightGray, fontSize = 12.sp)
+                                                    Text(event.state.name, color = if(event.state == GameState.LIVE) FreedomRed else Color.LightGray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                        }
                                     }
                                     if(scheduleLoading) Text("Loading schedule…", color = Color.LightGray)
                                     else if(scheduledGames.isEmpty()) Text("No events for this date. Try another day or competition.", color = Color.LightGray)
