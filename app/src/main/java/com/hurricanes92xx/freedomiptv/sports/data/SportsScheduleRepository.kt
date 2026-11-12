@@ -48,7 +48,15 @@ class SportsScheduleRepository(
             "${game.competitionId}:${game.startUtcMillis / 60000}:${game.home.name.lowercase().replace(Regex("[^a-z0-9]"), "")}:${game.away.name.lowercase().replace(Regex("[^a-z0-9]"), "")}"
         }.sortedBy { it.startUtcMillis }
         scheduleCache[cacheKey] = CachedSchedule(System.currentTimeMillis(), merged)
-        if (scheduleCache.size > 120) scheduleCache.entries.removeIf { System.currentTimeMillis() - it.value.savedAt > cacheTtlMillis }
+        if (scheduleCache.size > 120) {
+            val now = System.currentTimeMillis()
+            scheduleCache.entries.removeIf { now - it.value.savedAt >= cacheTtlMillis }
+            if (scheduleCache.size > 120) {
+                scheduleCache.entries.sortedBy { it.value.savedAt }
+                    .take(scheduleCache.size - 120)
+                    .forEach { scheduleCache.remove(it.key, it.value) }
+            }
+        }
         merged
     }
 
