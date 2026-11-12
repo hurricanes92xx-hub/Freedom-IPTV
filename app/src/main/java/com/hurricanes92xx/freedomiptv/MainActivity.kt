@@ -395,7 +395,10 @@ private fun FreedomApp() {
                                         else { seriesBusy = true; seriesSeasons = emptyList(); selectedSeason = null; page = "Series Detail"; scope.launch { try { seriesSeasons = vodApi.seriesSeasons(credentials!!, item.id); selectedSeason = seriesSeasons.firstOrNull()?.number; vodMessage = "${seriesSeasons.sumOf { it.episodes.size }} episodes loaded" } catch (e: Exception) { vodMessage = e.message ?: "Series detail failed" } finally { seriesBusy = false } } }
                                     }) {
                                         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                            AsyncImage(model = item.poster?.takeIf { it.isNotBlank() }, contentDescription = item.name, modifier = Modifier.width(110.dp).height(160.dp).clip(RoundedCornerShape(10.dp)), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+                                            Box(Modifier.width(110.dp).height(160.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF202936)), contentAlignment = Alignment.Center) {
+                                                Text("🎬", fontSize = 30.sp)
+                                                AsyncImage(model = item.poster?.takeIf { it.isNotBlank() }, contentDescription = item.name, modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+                                            }
                                             Column(Modifier.padding(start = 14.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                                 Text(item.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                                                 item.rating?.let { Text("★ $it", color = FreedomRed) }
