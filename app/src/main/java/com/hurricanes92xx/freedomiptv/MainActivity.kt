@@ -25,6 +25,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringSetPreferencesKey
+import kotlinx.coroutines.flow.first
+import android.content.Context
+
+private val Context.favoriteStore by preferencesDataStore(name = "freedom_favorites")
+private val FAVORITE_IDS = stringSetPreferencesKey("channel_ids")
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamApi
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamCredentials
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamCategory
@@ -58,6 +66,8 @@ private fun FreedomApp() {
     var guideMessage by remember { mutableStateOf("Connect a provider to load the guide.") }
     var guide by remember { mutableStateOf<Map<String, List<com.hurricanes92xx.freedomiptv.provider.xtream.XtreamProgramme>>>(emptyMap()) }
     var favorites by remember { mutableStateOf<Set<String>>(emptySet()) }
+    LaunchedEffect(Unit) { favorites = context.favoriteStore.data.first()[FAVORITE_IDS] ?: emptySet() }
+    fun updateFavorites(next: Set<String>) { favorites = next; scope.launch { context.favoriteStore.edit { prefs -> prefs[FAVORITE_IDS] = next } } }
     val scope = rememberCoroutineScope()
     val api = remember { XtreamApi() }
     val context = LocalContext.current
@@ -124,7 +134,7 @@ private fun FreedomApp() {
                                     Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth().clickable { currentChannel = channel; page = "Player" }) {
                                         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                                             Text(channel.name, color = Color.White, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-                                            TextButton(onClick = { favorites = if (channel.id in favorites) favorites - channel.id else favorites + channel.id }) { Text(if (channel.id in favorites) "★" else "☆", color = FreedomRed) }
+                                            TextButton(onClick = { updateFavorites(if (channel.id in favorites) favorites - channel.id else favorites + channel.id) }) { Text(if (channel.id in favorites) "★" else "☆", color = FreedomRed) }
                                             Text("▶", color = FreedomRed)
                                         }
                                     }
@@ -157,7 +167,7 @@ private fun FreedomApp() {
                                 Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth().clickable { currentChannel = channel; page = "Player" }) {
                                     Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                                         Text(channel.name, color = Color.White, modifier = Modifier.weight(1f))
-                                        TextButton(onClick = { favorites = favorites - channel.id }) { Text("★", color = FreedomRed) }
+                                        TextButton(onClick = { updateFavorites(favorites - channel.id) }) { Text("★", color = FreedomRed) }
                                     }
                                 }
                             }
