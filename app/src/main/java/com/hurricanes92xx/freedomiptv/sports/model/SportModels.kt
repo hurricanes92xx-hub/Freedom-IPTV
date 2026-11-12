@@ -1,7 +1,7 @@
 package com.hurricanes92xx.freedomiptv.sports.model
 
 /** Canonical competition catalog. College scope intentionally stays limited. */
-enum class Sport(val label:String) { FOOTBALL("Football"),BASKETBALL("Basketball"),VOLLEYBALL("Volleyball"),BASEBALL("Baseball"),GYMNASTICS("Gymnastics"),SOCCER("Soccer"),HOCKEY("Hockey"),COMBAT("Combat"),MOTORSPORT("Motorsport"),TENNIS("Tennis"),GOLF("Golf") }
+enum class Sport(val label:String) { FOOTBALL("Football"),BASKETBALL("Basketball"),VOLLEYBALL("Volleyball"),BASEBALL("Baseball"),GYMNASTICS("Gymnastics"),SOCCER("Soccer"),HOCKEY("Hockey"),COMBAT("Combat") }
 enum class Competition(val id:String,val label:String,val sport:Sport,val college:Boolean=false) {
  NFL("nfl","NFL",Sport.FOOTBALL),NBA("nba","NBA",Sport.BASKETBALL),MLB("mlb","MLB",Sport.BASEBALL),NHL("nhl","NHL",Sport.HOCKEY),WNBA("wnba","WNBA",Sport.BASKETBALL),MLS("mls","MLS",Sport.SOCCER),
  NCAAF_FBS("ncaaf-fbs","NCAA Football FBS",Sport.FOOTBALL,true),NCAAF_FCS("ncaaf-fcs","NCAA Football FCS",Sport.FOOTBALL,true),
@@ -14,3 +14,8 @@ enum class GameState { SCHEDULED,LIVE,FINAL,POSTPONED,CANCELED,UNKNOWN }
 data class Team(val id:String,val name:String,val shortName:String?=null,val logoUrl:String?=null,val competitionId:String)
 data class Game(val id:String,val competitionId:String,val home:Team,val away:Team,val startUtcMillis:Long,val state:GameState=GameState.SCHEDULED,val homeScore:Int?=null,val awayScore:Int?=null,val clock:String?=null,val period:String?=null,val venue:String?=null)
 data class ChannelCandidate(val channelId:String,val channelName:String,val confidence:Int,val reasons:List<String>)
+
+/** Wrestling cards use promotion/event/bout semantics, not team-vs-team games. */
+data class CombatBout(val id:String,val participants:List<String>,val weightClass:String?=null,val isMainEvent:Boolean=false)
+data class CombatEvent(val id:String,val promotionId:String,val title:String,val startUtcMillis:Long,val posterUrl:String?=null,val bouts:List<CombatBout> = emptyList(),val state:GameState=GameState.SCHEDULED)
+enum class CombatPromotion(val id:String,val label:String){WWE("wwe","WWE"),AEW("aew","AEW"),TNA("tna","TNA Wrestling")}
