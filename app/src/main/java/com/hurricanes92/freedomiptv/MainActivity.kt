@@ -466,6 +466,7 @@ private fun FreedomApp() {
                                                 Column(horizontalAlignment = Alignment.End) {
                                                     Text(when(game.state) { GameState.LIVE -> "LIVE"; GameState.FINAL -> "FINAL"; GameState.POSTPONED -> "POSTP."; GameState.CANCELED -> "CANCELED"; else -> "UPCOMING" }, color = if(game.state == GameState.LIVE) FreedomRed else Color.LightGray, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                                     if(game.homeScore != null || game.awayScore != null) Text("${game.awayScore ?: 0} - ${game.homeScore ?: 0}", color = if(game.state == GameState.LIVE) Color(0xFFFFD166) else Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+                                                    game.period?.let { Text(it, color = Color(0xFFFFD166), fontSize = 10.sp, fontWeight = FontWeight.Bold) }
                                                     game.clock?.let { Text(it, color = Color(0xFF9BA8BA), fontSize = 10.sp) }
                                                 }
                                             }
