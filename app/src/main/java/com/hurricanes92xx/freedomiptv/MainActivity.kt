@@ -11,6 +11,7 @@ import androidx.compose.runtime.LaunchedEffect
 import com.hurricanes92xx.freedomiptv.player.FreedomPlayer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -146,7 +147,36 @@ private fun FreedomApp() {
                             Button(onClick = { mediaPlayer.exoPlayer.stop(); currentChannel = null; page = "Live TV" }) { Text("Back to channels") }
                         }
                     }
-                    "Guide" -> { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { Button(enabled = connected && !guideBusy, onClick = { guideBusy = true; scope.launch { try { val creds = credentials ?: error("Connect first."); guide = channels.take(60).associate { it.id to api.getShortEpg(creds, it.id, 8) }; guideMessage = "Guide loaded." } catch (e: Exception) { guideMessage = e.message ?: "Guide failed." } finally { guideBusy = false } } }) { Text(if (guideBusy) "Loading…" else "Refresh guide") }; Text(guideMessage, color = Color.LightGray); LazyColumn { items(channels.filter { guide[it.id]?.isNotEmpty() == true }, key = { it.id }) { channel -> Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) { Text(channel.name, color = FreedomRed, fontWeight = FontWeight.Bold); guide[channel.id].orEmpty().forEach { p -> Text("${java.time.Instant.ofEpochSecond(p.startEpochSeconds).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))}  ${p.title}", color = Color.White); if (p.description.isNotBlank()) Text(p.description, color = Color.LightGray, maxLines = 2) } } } } } }
+                    "Guide" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Button(enabled = connected && !guideBusy, onClick = {
+                                guideBusy = true
+                                scope.launch {
+                                    try {
+                                        val creds = credentials ?: error("Connect first.")
+                                        guide = channels.take(60).associate { channel -> channel.id to api.getShortEpg(creds, channel.id, 8) }
+                                        guideMessage = "Guide loaded."
+                                    } catch (e: Exception) {
+                                        guideMessage = e.message ?: "Guide failed."
+                                    } finally { guideBusy = false }
+                                }
+                            }) { Text(if (guideBusy) "Loading…" else "Refresh guide") }
+                            Text(guideMessage, color = Color.LightGray)
+                            LazyColumn {
+                                items(channels.filter { guide[it.id]?.isNotEmpty() == true }, key = { it.id }) { channel ->
+                                    Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth()) {
+                                        Column(Modifier.padding(12.dp)) {
+                                            Text(channel.name, color = FreedomRed, fontWeight = FontWeight.Bold)
+                                            guide[channel.id].orEmpty().forEach { programme ->
+                                                Text(programme.title, color = Color.White)
+                                                if (programme.description.isNotBlank()) Text(programme.description, color = Color.LightGray, maxLines = 2)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                     else -> EmptyState("This section is queued for implementation.") { page = "Live TV" }
                 }
             }
