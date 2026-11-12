@@ -346,12 +346,16 @@ private fun FreedomApp() {
                         val visibleSports = sports.filter { channel -> sportFilter == "All" || (channel.name + " " + (categoryNames[channel.categoryId] ?: "")).contains(filterTerms[sportFilter] ?: Regex("(?!)")) }
                         val scheduleProvider = remember { EspnScheduleProvider() }
                         var selectedCompetition by remember { mutableStateOf(Competition.NFL) }
+                        var scheduleDayOffset by remember { mutableIntStateOf(0) }
                         var scheduledGames by remember { mutableStateOf<List<Game>>(emptyList()) }
                         var scheduleLoading by remember { mutableStateOf(false) }
-                        LaunchedEffect(selectedCompetition) {
+                        LaunchedEffect(selectedCompetition, scheduleDayOffset) {
                             scheduleLoading = true
-                            val now = System.currentTimeMillis()
-                            scheduledGames = runCatching { scheduleProvider.schedule(selectedCompetition, now - 2 * 60 * 60 * 1000L, now + 7 * 24 * 60 * 60 * 1000L) }.getOrDefault(emptyList())
+                            val zone = java.time.ZoneId.systemDefault()
+                            val day = java.time.LocalDate.now(zone).plusDays(scheduleDayOffset.toLong())
+                            val from = day.atStartOfDay(zone).toInstant().toEpochMilli()
+                            val to = day.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1L
+                            scheduledGames = runCatching { scheduleProvider.schedule(selectedCompetition, from, to) }.getOrDefault(emptyList())
                             scheduleLoading = false
                         }
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(bottom = 28.dp)) {
@@ -382,19 +386,33 @@ private fun FreedomApp() {
                                     }
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         items(listOf(Competition.NFL, Competition.NBA, Competition.MLB, Competition.NHL, Competition.WNBA, Competition.MLS, Competition.NCAAF_FBS, Competition.NCAAF_FCS, Competition.NCAAM_D1, Competition.NCAAM_D2, Competition.NCAAM_D3, Competition.NCAAW_D1, Competition.NCAAW_D2, Competition.NCAAW_D3, Competition.NCAAVB_W, Competition.NCAABASE, Competition.NCAAGYM_W)) { comp ->
-                                            FilterChip(selected = selectedCompetition == comp, onClick = { selectedCompetition = comp }, label = { Text(comp.label) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = FreedomRed, selectedLabelColor = Color.White))
+                                            FilterChip(selected = selectedCompetition == comp, onClick = { selectedCompetition = comp; scheduleDayOffset = 0 }, label = { Text(comp.label) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = FreedomRed, selectedLabelColor = Color.White))
                                         }
                                     }
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        OutlinedButton(onClick = { scheduleDayOffset-- }) { Text("‹") }
+                                        FilterChip(selected = scheduleDayOffset == 0, onClick = { scheduleDayOffset = 0 }, label = { Text("Today") })
+                                        FilterChip(selected = scheduleDayOffset == 1, onClick = { scheduleDayOffset = 1 }, label = { Text("Tomorrow") })
+                                        Text(java.time.LocalDate.now().plusDays(scheduleDayOffset.toLong()).format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d")), color = Color.LightGray, fontSize = 12.sp)
+                                        OutlinedButton(onClick = { scheduleDayOffset++ }) { Text("›") }
+                                    }
                                     if(scheduleLoading) Text("Loading schedule…", color = Color.LightGray)
-                                    else if(scheduledGames.isEmpty()) Text("No events available in the next 7 days.", color = Color.LightGray)
-                                    else scheduledGames.take(12).forEach { game ->
+                                    else if(scheduledGames.isEmpty()) Text("No events for this date. Try another day or competition.", color = Color.LightGray)
+                                    else scheduledGames.take(20).forEach { game ->
                                         Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
-                                            Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Column(Modifier.weight(1f)) {
-                                                    Text("${game.away.name} @ ${game.home.name}", color = Color.White, fontWeight = FontWeight.Bold)
-                                                    Text(SimpleDateFormat("EEE, MMM d • h:mm a", Locale.getDefault()).format(Date(game.startUtcMillis)), color = Color.LightGray, fontSize = 12.sp)
+                                            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                AsyncImage(model = game.away.logoUrl, contentDescription = game.away.name, modifier = Modifier.size(42.dp))
+                                                Column(Modifier.padding(horizontal = 10.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                                    Text("${game.away.shortName ?: game.away.name} @ ${game.home.shortName ?: game.home.name}", color = Color.White, fontWeight = FontWeight.Bold)
+                                                    Text(SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(game.startUtcMillis)) + (game.venue?.let { " • $it" } ?: ""), color = Color.LightGray, fontSize = 12.sp)
                                                 }
-                                                Text(when(game.state) { GameState.LIVE -> "LIVE ${game.awayScore ?: 0}-${game.homeScore ?: 0}"; GameState.FINAL -> "FINAL ${game.awayScore ?: 0}-${game.homeScore ?: 0}"; else -> "UPCOMING" }, color = if(game.state == GameState.LIVE) FreedomRed else Color.LightGray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                                AsyncImage(model = game.home.logoUrl, contentDescription = game.home.name, modifier = Modifier.size(42.dp))
+                                                Spacer(Modifier.width(10.dp))
+                                                Column(horizontalAlignment = Alignment.End) {
+                                                    Text(when(game.state) { GameState.LIVE -> "LIVE"; GameState.FINAL -> "FINAL"; GameState.POSTPONED -> "POSTP."; GameState.CANCELED -> "CANCELED"; else -> "UPCOMING" }, color = if(game.state == GameState.LIVE) FreedomRed else Color.LightGray, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                                    if(game.homeScore != null || game.awayScore != null) Text("${game.awayScore ?: 0}-${game.homeScore ?: 0}", color = Color.White, fontWeight = FontWeight.Bold)
+                                                    game.clock?.let { Text(it, color = Color(0xFF9BA8BA), fontSize = 10.sp) }
+                                                }
                                             }
                                         }
                                     }
