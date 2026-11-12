@@ -232,7 +232,7 @@ private fun FreedomApp() {
                                             prefs.remove(PROVIDER_USERNAME)
                                             prefs.remove(LEGACY_PROVIDER_PASSWORD)
                                         }
-                                        mediaPlayer.exoPlayer.stop()
+                                        mediaPlayer.stop()
                                         currentChannel = null
                                         credentials = null
                                         channels = emptyList()
@@ -316,7 +316,7 @@ private fun FreedomApp() {
                             Text("If the stream stalls or errors, tap Retry to reconnect.", color = Color.LightGray)
                             mediaPlayer.lastPlaybackError?.let { error -> Text("Playback error: $error", color = FreedomRed) }
                             OutlinedButton(onClick = { mediaPlayer.retry() }) { Text("Retry stream") }
-                            Button(onClick = { mediaPlayer.exoPlayer.stop(); currentChannel = null; page = "Live TV" }) { Text("Back to channels") }
+                            Button(onClick = { mediaPlayer.stop(); currentChannel = null; page = "Live TV" }) { Text("Back to channels") }
                         }
                     }
                     "Favorites" -> {
@@ -470,7 +470,7 @@ private fun FreedomApp() {
                                 Text("Playback error: $error", color = FreedomRed)
                                 OutlinedButton(onClick = { mediaPlayer.retry() }) { Text("Retry playback") }
                             }
-                            Button(onClick = { mediaPlayer.exoPlayer.stop(); vodPlayingUrl = null; page = if(vodSeriesMode) "Series Detail" else "Movies" }) { Text(if(vodSeriesMode) "Back to episodes" else "Back to movies") }
+                            Button(onClick = { mediaPlayer.stop(); vodPlayingUrl = null; page = if(vodSeriesMode) "Series Detail" else "Movies" }) { Text(if(vodSeriesMode) "Back to episodes" else "Back to movies") }
                         }
                     }
                     "Guide" -> {
