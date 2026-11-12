@@ -349,36 +349,15 @@ private fun FreedomApp() {
                         var scheduleDayOffset by remember { mutableIntStateOf(0) }
                         var scheduledGames by remember { mutableStateOf<List<Game>>(emptyList()) }
                         var scheduleLoading by remember { mutableStateOf(false) }
-                        var scheduleUpdated by remember { mutableStateOf<String?>(null) }
-                        var scheduleError by remember { mutableStateOf<String?>(null) }
-                        val schedulePrefs = remember { context.getSharedPreferences("freedom_schedule_cache", Context.MODE_PRIVATE) }
-                        suspend fun refreshSchedule(force: Boolean = false) {
-                            val zone=java.time.ZoneId.systemDefault()
-                            val day=java.time.LocalDate.now(zone).plusDays(scheduleDayOffset.toLong())
-                            val key="schedule_${selectedCompetition.id}_$day"
-                            if(!force) schedulePrefs.getString(key,null)?.let { raw -> runCatching {
-                                val arr=JSONArray(raw)
-                                scheduledGames=(0 until arr.length()).mapNotNull { n ->
-                                    val o=arr.optJSONObject(n)?:return@mapNotNull null
-                                    val h=com.hurricanes92xx.freedomiptv.sports.model.Team(o.getString("hn"),o.optString("hs").ifBlank{null},o.optString("ha").ifBlank{null},o.optString("hl").ifBlank{null},selectedCompetition.id)
-                                    val a=com.hurricanes92xx.freedomiptv.sports.model.Team(o.getString("an"),o.optString("as").ifBlank{null},o.optString("aa").ifBlank{null},o.optString("al").ifBlank{null},selectedCompetition.id)
-                                    Game(o.getString("id"),selectedCompetition.id,h,a,o.getLong("start"),GameState.valueOf(o.getString("state")),if(o.has("hscore"))o.optInt("hscore") else null,if(o.has("ascore"))o.optInt("ascore") else null,o.optString("detail").ifBlank{null},o.optString("short").ifBlank{null},o.optString("venue").ifBlank{null})
-                                }
-                                scheduleUpdated=schedulePrefs.getString("updated_$key",null)
-                            } }
-                            scheduleLoading=true; scheduleError=null
-                            try {
-                                val from=day.atStartOfDay(zone).toInstant().toEpochMilli()
-                                val to=day.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()-1L
-                                val fresh=scheduleProvider.schedule(selectedCompetition,from,to); scheduledGames=fresh
-                                val arr=JSONArray()
-                                fresh.forEach { g -> arr.put(JSONObject().put("id",g.id).put("hn",g.home.name).put("hs",g.home.shortName).put("ha",g.home.abbreviation).put("hl",g.home.logoUrl).put("an",g.away.name).put("as",g.away.shortName).put("aa",g.away.abbreviation).put("al",g.away.logoUrl).put("start",g.startUtcMillis).put("state",g.state.name).put("hscore",g.homeScore).put("ascore",g.awayScore).put("detail",g.statusDetail).put("short",g.statusShort).put("venue",g.venue)) }
-                                scheduleUpdated=SimpleDateFormat("MMM d, h:mm a",Locale.getDefault()).format(Date())
-                                schedulePrefs.edit().putString(key,arr.toString()).putString("updated_$key",scheduleUpdated).apply()
-                            } catch(e:Exception) { scheduleError="Refresh failed; saved schedule retained." }
-                            finally { scheduleLoading=false }
+                        LaunchedEffect(selectedCompetition, scheduleDayOffset) {
+                            scheduleLoading = true
+                            val zone = java.time.ZoneId.systemDefault()
+                            val day = java.time.LocalDate.now(zone).plusDays(scheduleDayOffset.toLong())
+                            val from = day.atStartOfDay(zone).toInstant().toEpochMilli()
+                            val to = day.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1L
+                            scheduledGames = runCatching { scheduleProvider.schedule(selectedCompetition, from, to) }.getOrDefault(emptyList())
+                            scheduleLoading = false
                         }
-                        LaunchedEffect(selectedCompetition,scheduleDayOffset) { refreshSchedule() }
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(bottom = 28.dp)) {
                             item {
                                 Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF151D2B)), shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
@@ -403,7 +382,7 @@ private fun FreedomApp() {
                                 Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text("SCHEDULE & SCORES", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                                        Spacer(Modifier.weight(1f)); Text((if(scheduleLoading) "REFRESHING" else "ESPN")+(scheduleUpdated?.let{" · $it"}?:""), color = Color(0xFF9BA8BA), fontSize = 11.sp); TextButton(enabled=!scheduleLoading,onClick={scope.launch{refreshSchedule(true)}}){Text("↻",color=FreedomRed)}
+                                        Spacer(Modifier.weight(1f)); Text(if(scheduleLoading) "LOADING" else "ESPN", color = Color(0xFF9BA8BA), fontSize = 11.sp)
                                     }
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         items(listOf(Competition.NFL, Competition.NBA, Competition.MLB, Competition.NHL, Competition.WNBA, Competition.MLS, Competition.NCAAF_FBS, Competition.NCAAF_FCS, Competition.NCAAM_D1, Competition.NCAAM_D2, Competition.NCAAM_D3, Competition.NCAAW_D1, Competition.NCAAW_D2, Competition.NCAAW_D3, Competition.NCAAVB_W, Competition.NCAABASE, Competition.NCAAGYM_W)) { comp ->
@@ -417,9 +396,8 @@ private fun FreedomApp() {
                                         Text(java.time.LocalDate.now().plusDays(scheduleDayOffset.toLong()).format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d")), color = Color.LightGray, fontSize = 12.sp)
                                         OutlinedButton(onClick = { scheduleDayOffset++ }) { Text("›") }
                                     }
-                                    if(scheduleLoading && scheduledGames.isEmpty()) Text("Loading schedule…", color = Color.LightGray)
-                                    scheduleError?.let{Text(it,color=Color(0xFFFFB86B),fontSize=12.sp)}
-                                    if(!scheduleLoading && scheduledGames.isEmpty()) Text("No events for this date. Try another day or competition.", color = Color.LightGray)
+                                    if(scheduleLoading) Text("Loading schedule…", color = Color.LightGray)
+                                    else if(scheduledGames.isEmpty()) Text("No events for this date. Try another day or competition.", color = Color.LightGray)
                                     else scheduledGames.take(20).forEach { game ->
                                         Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
                                             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
