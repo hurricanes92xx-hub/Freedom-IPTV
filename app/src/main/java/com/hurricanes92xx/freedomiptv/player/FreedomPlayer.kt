@@ -5,12 +5,15 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.PlaybackException
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 /** Single player owner; screens should attach/detach surfaces rather than create players. */
 class FreedomPlayer(context: Context) {
     val exoPlayer: ExoPlayer = ExoPlayer.Builder(context.applicationContext).build()
     private var currentId: String? = null
-    var lastPlaybackError: String? = null
+    var lastPlaybackError: String? by mutableStateOf(null)
         private set
 
     init {
