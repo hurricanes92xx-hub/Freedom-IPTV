@@ -345,7 +345,37 @@ private fun FreedomApp() {
                             }
                         }
                     }
-                    "Series Detail" -> {\n                        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {\n                            Row(verticalAlignment = Alignment.CenterVertically) { Button(onClick = { page = "Series" }) { Text("← Series") }; Text(selectedVod?.name ?: "Series", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 12.dp)) }\n                            Text(if(seriesBusy) "Loading seasons and episodes…" else vodMessage, color = Color.LightGray)\n                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { items(seriesSeasons, key = { it.number }) { season -> FilterChip(selected = selectedSeason == season.number, onClick = { selectedSeason = season.number }, label = { Text(season.name) }) } }\n                            val episodes = seriesSeasons.firstOrNull { it.number == selectedSeason }?.episodes.orEmpty()\n                            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) { items(episodes, key = { it.id }) { ep -> Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth().clickable { vodPlayingUrl = credentials?.let { vodApi.episodeUrl(it, ep) }; currentChannel = null; page = "VOD Player" }) { Column(Modifier.padding(14.dp)) { Text("Episode ${ep.episodeNumber}: ${ep.title}", color = Color.White, fontWeight = FontWeight.Bold); ep.plot?.let { Text(it, color = Color.LightGray, maxLines = 3) }; Text("▶ Play episode", color = FreedomRed) } } }\n                        }\n                    }\n                    "VOD Player" -> Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth()) {
+                    "Series Detail" -> {
+                        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Button(onClick = { page = "Series" }) { Text("← Series") }
+                                Text(selectedVod?.name ?: "Series", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 12.dp))
+                            }
+                            Text(if (seriesBusy) "Loading seasons and episodes…" else vodMessage, color = Color.LightGray)
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(seriesSeasons, key = { it.number }) { season ->
+                                    FilterChip(selected = selectedSeason == season.number, onClick = { selectedSeason = season.number }, label = { Text(season.name) })
+                                }
+                            }
+                            val episodes = seriesSeasons.firstOrNull { it.number == selectedSeason }?.episodes.orEmpty()
+                            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(episodes, key = { it.id }) { ep ->
+                                    Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth().clickable {
+                                        vodPlayingUrl = credentials?.let { vodApi.episodeUrl(it, ep) }
+                                        currentChannel = null
+                                        page = "VOD Player"
+                                    }) {
+                                        Column(Modifier.padding(14.dp)) {
+                                            Text("Episode ${ep.episodeNumber}: ${ep.title}", color = Color.White, fontWeight = FontWeight.Bold)
+                                            ep.plot?.let { Text(it, color = Color.LightGray, maxLines = 3) }
+                                            Text("▶ Play episode", color = FreedomRed)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    "VOD Player" -> Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(selectedVod?.name ?: "Movie", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                             AndroidView(factory = { ctx -> PlayerView(ctx).apply { player = mediaPlayer.exoPlayer; useController = true } }, modifier = Modifier.fillMaxWidth().height(420.dp), update = { it.player = mediaPlayer.exoPlayer })
