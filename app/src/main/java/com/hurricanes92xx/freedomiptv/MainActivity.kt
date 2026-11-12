@@ -339,7 +339,7 @@ private fun FreedomApp() {
                         val sports = channels.filter { channel -> (channel.name + " " + (categoryNames[channel.categoryId] ?: "")).contains(sportsTerms) }
                         var sportFilter by remember { mutableStateOf("All") }
                         val filterTerms = mapOf("Football" to Regex("football|nfl|college football", RegexOption.IGNORE_CASE), "Basketball" to Regex("basketball|nba|wnba", RegexOption.IGNORE_CASE), "Baseball" to Regex("baseball|mlb", RegexOption.IGNORE_CASE), "Hockey" to Regex("hockey|nhl", RegexOption.IGNORE_CASE), "Soccer" to Regex("soccer|mls|epl|champions league", RegexOption.IGNORE_CASE), "Volleyball" to Regex("volleyball", RegexOption.IGNORE_CASE), "Combat" to Regex("ufc|mma|boxing", RegexOption.IGNORE_CASE), "Wrestling" to Regex("wwe|aew|tna|wrestling", RegexOption.IGNORE_CASE))
-                        val visibleSports = sports.filter { sportFilter == "All" || (it.name + " " + (categoryNames[it.categoryId] ?: "")).contains(filterTerms[sportFilter] ?: Regex("(?!)") }
+                        val visibleSports = sports.filter { channel -> sportFilter == "All" || (channel.name + " " + (categoryNames[channel.categoryId] ?: "")).contains(filterTerms[sportFilter] ?: Regex("(?!)")) }
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(bottom = 28.dp)) {
                             item {
                                 Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF151D2B)), shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
