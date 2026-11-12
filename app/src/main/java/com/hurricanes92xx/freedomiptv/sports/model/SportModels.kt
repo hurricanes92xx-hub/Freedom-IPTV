@@ -14,8 +14,6 @@ enum class GameState { SCHEDULED,LIVE,FINAL,POSTPONED,CANCELED,UNKNOWN }
 data class Team(val id:String,val name:String,val shortName:String?=null,val logoUrl:String?=null,val competitionId:String)
 data class Game(val id:String,val competitionId:String,val home:Team,val away:Team,val startUtcMillis:Long,val state:GameState=GameState.SCHEDULED,val homeScore:Int?=null,val awayScore:Int?=null,val clock:String?=null,val period:String?=null,val venue:String?=null)
 data class ChannelCandidate(val channelId:String,val channelName:String,val confidence:Int,val reasons:List<String>)
-
-/** Wrestling cards use promotion/event/bout semantics, not team-vs-team games. */
 data class CombatBout(val id:String,val participants:List<String>,val weightClass:String?=null,val isMainEvent:Boolean=false)
 data class CombatEvent(val id:String,val promotionId:String,val title:String,val startUtcMillis:Long,val posterUrl:String?=null,val bouts:List<CombatBout> = emptyList(),val state:GameState=GameState.SCHEDULED)
-enum class CombatPromotion(val id:String,val label:String){WWE("wwe","WWE"),AEW("aew","AEW"),TNA("tna","TNA Wrestling")}
+enum class CombatPromotion(val id:String,val label:String){UFC("ufc","UFC"),BOXING("boxing","Boxing"),WWE("wwe","WWE"),AEW("aew","AEW"),TNA("tna","TNA Wrestling")}
