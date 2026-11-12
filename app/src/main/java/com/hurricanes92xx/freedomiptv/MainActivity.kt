@@ -1,4 +1,6 @@
 package com.hurricanes92xx.freedomiptv
+import org.json.JSONArray
+import org.json.JSONObject
 import com.hurricanes92xx.freedomiptv.sports.model.GameState
 import com.hurricanes92xx.freedomiptv.sports.model.Game
 import com.hurricanes92xx.freedomiptv.sports.model.Competition
@@ -360,9 +362,9 @@ private fun FreedomApp() {
                                 val arr=JSONArray(raw)
                                 scheduledGames=(0 until arr.length()).mapNotNull { n ->
                                     val o=arr.optJSONObject(n)?:return@mapNotNull null
-                                    val h=com.hurricanes92xx.freedomiptv.sports.model.Team(o.getString("hn"),o.optString("hs").ifBlank{null},o.optString("ha").ifBlank{null},o.optString("hl").ifBlank{null},selectedCompetition.id)
-                                    val a=com.hurricanes92xx.freedomiptv.sports.model.Team(o.getString("an"),o.optString("as").ifBlank{null},o.optString("aa").ifBlank{null},o.optString("al").ifBlank{null},selectedCompetition.id)
-                                    Game(o.getString("id"),selectedCompetition.id,h,a,o.getLong("start"),GameState.valueOf(o.getString("state")),if(o.has("hscore"))o.optInt("hscore") else null,if(o.has("ascore"))o.optInt("ascore") else null,o.optString("detail").ifBlank{null},o.optString("short").ifBlank{null},o.optString("venue").ifBlank{null})
+                                    val h=com.hurricanes92xx.freedomiptv.sports.model.Team(o.getString("hn"),o.getString("hn"),o.optString("hs").ifBlank{null},o.optString("hl").ifBlank{null},selectedCompetition.id)
+                                    val a=com.hurricanes92xx.freedomiptv.sports.model.Team(o.getString("an"),o.getString("an"),o.optString("as").ifBlank{null},o.optString("al").ifBlank{null},selectedCompetition.id)
+                                    Game(o.getString("id"),selectedCompetition.id,h,a,o.getLong("start"),GameState.valueOf(o.getString("state")),if(o.has("hscore"))o.optInt("hscore") else null,if(o.has("ascore"))o.optInt("ascore") else null,o.optString("clock").ifBlank{null},o.optString("period").ifBlank{null},o.optString("venue").ifBlank{null})
                                 }
                                 scheduleUpdated=schedulePrefs.getString("updated_$key",null)
                             } }
@@ -372,7 +374,7 @@ private fun FreedomApp() {
                                 val to=day.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()-1L
                                 val fresh=scheduleProvider.schedule(selectedCompetition,from,to); scheduledGames=fresh
                                 val arr=JSONArray()
-                                fresh.forEach { g -> arr.put(JSONObject().put("id",g.id).put("hn",g.home.name).put("hs",g.home.shortName).put("ha",g.home.abbreviation).put("hl",g.home.logoUrl).put("an",g.away.name).put("as",g.away.shortName).put("aa",g.away.abbreviation).put("al",g.away.logoUrl).put("start",g.startUtcMillis).put("state",g.state.name).put("hscore",g.homeScore).put("ascore",g.awayScore).put("detail",g.statusDetail).put("short",g.statusShort).put("venue",g.venue)) }
+                                fresh.forEach { g -> arr.put(JSONObject().put("id",g.id).put("hn",g.home.name).put("hs",g.home.shortName).put("ha",g.home.abbreviation).put("hl",g.home.logoUrl).put("an",g.away.name).put("as",g.away.shortName).put("aa",g.away.abbreviation).put("al",g.away.logoUrl).put("start",g.startUtcMillis).put("state",g.state.name).put("hscore",g.homeScore).put("ascore",g.awayScore).put("clock",g.clock).put("period",g.period).put("venue",g.venue)) }
                                 scheduleUpdated=SimpleDateFormat("MMM d, h:mm a",Locale.getDefault()).format(Date())
                                 schedulePrefs.edit().putString(key,arr.toString()).putString("updated_$key",scheduleUpdated).apply()
                             } catch(e:Exception) { scheduleError="Refresh failed; saved schedule retained." }
