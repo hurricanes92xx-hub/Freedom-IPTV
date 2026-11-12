@@ -254,7 +254,7 @@ private fun FreedomApp() {
                     "Sports" -> {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text("Sports channels from your provider", color = Color.LightGray)
-                            val categoryNames = categories.associate { it.id to it.name }\n                            val sportsTerms = Regex("sport|nba|wnba|nfl|nhl|mlb|soccer|football|ufc|mma|boxing|racing|f1|formula|tennis|golf|cricket|rugby|motorsport|wrestling|espn|fox sports|sky sports|be[in] sports", RegexOption.IGNORE_CASE)\n                            val sports = channels.filter { channel -> (channel.name + " " + (categoryNames[channel.categoryId] ?: "")).contains(sportsTerms) }
+                            val categoryNames = categories.associate { it.id to it.name }\n                            val sportsTerms = Regex("sport|ncaa|college|basketball|volleyball|nba|wnba|nfl|nhl|mlb|soccer|football|ufc|mma|boxing|racing|f1|formula|tennis|golf|cricket|rugby|motorsport|wrestling|espn|fox sports|sky sports|be[in] sports", RegexOption.IGNORE_CASE)\n                            val sports = channels.filter { channel -> (channel.name + " " + (categoryNames[channel.categoryId] ?: "")).contains(sportsTerms) }
                             if (sports.isEmpty()) EmptyState("No sports channels detected in the loaded lineup.") { page = "Live TV" }
                             else LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 items(sports, key = { it.id }) { channel ->
