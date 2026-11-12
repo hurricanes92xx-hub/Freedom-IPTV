@@ -518,14 +518,21 @@ private fun EmptyState(message: String, action: () -> Unit) {
 @Composable
 private fun ArtworkFallbackImage(title: String, isSeries: Boolean, providerPoster: String?, modifier: Modifier = Modifier) {
     var fallbackUrl by remember(title, isSeries) { mutableStateOf<String?>(null) }
-    LaunchedEffect(title, isSeries, providerPoster) {
-        if (providerPoster.isNullOrBlank()) {
+    var providerFailed by remember(title, isSeries) { mutableStateOf(false) }
+    LaunchedEffect(title, isSeries, providerPoster, providerFailed) {
+        if (providerPoster.isNullOrBlank() || providerFailed) {
             fallbackUrl = if (isSeries) TvmazeArtwork.lookup(title) else CinemetaArtwork.lookup(title)
         }
     }
     Box(modifier, contentAlignment = Alignment.Center) {
         Text("🎬", fontSize = 30.sp)
-        AsyncImage(model = providerPoster?.takeIf { it.isNotBlank() } ?: fallbackUrl, contentDescription = title, modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+        AsyncImage(
+            model = if (!providerPoster.isNullOrBlank() && !providerFailed) providerPoster else fallbackUrl,
+            contentDescription = title,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            onError = { if (!providerPoster.isNullOrBlank()) providerFailed = true }
+        )
     }
 }
 private object TvmazeArtwork {
