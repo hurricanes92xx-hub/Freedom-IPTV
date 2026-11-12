@@ -12,6 +12,7 @@ import androidx.media3.ui.PlayerView
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import com.hurricanes92xx.freedomiptv.player.FreedomPlayer
+import com.hurricanes92xx.freedomiptv.security.CredentialVault
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
@@ -62,7 +63,7 @@ private val FAVORITE_IDS = stringSetPreferencesKey("channel_ids")
 private val PLAYLIST_DATA = stringSetPreferencesKey("m3u_channels")
 private val PROVIDER_SERVER = stringPreferencesKey("provider_server")
 private val PROVIDER_USERNAME = stringPreferencesKey("provider_username")
-private val PROVIDER_PASSWORD = stringPreferencesKey("provider_password")
+private val LEGACY_PROVIDER_PASSWORD = stringPreferencesKey("provider_password")
 
 private val FreedomRed = Color(0xFFF04452)
 private val FreedomBlue = Color(0xFF2878FF)
@@ -120,7 +121,18 @@ private fun FreedomApp() {
         playlistChannels = (prefs[PLAYLIST_DATA] ?: emptySet()).mapNotNull { raw -> try { val j=JSONArray(raw); M3uChannel(j.getString(0),j.getString(1),j.optString(2).ifBlank { null },j.optString(3).ifBlank { null },j.optString(4).ifBlank { null }) } catch(_:Exception){null} }
         server = prefs[PROVIDER_SERVER] ?: "https://"
         username = prefs[PROVIDER_USERNAME] ?: ""
-        password = prefs[PROVIDER_PASSWORD] ?: ""
+        // Migrate plaintext once: write encrypted storage first, then delete legacy DataStore value.
+        val vault = CredentialVault(context)
+        val legacyPassword = prefs[LEGACY_PROVIDER_PASSWORD].orEmpty()
+        val encryptedPassword = vault.getPassword()
+        password = if (!encryptedPassword.isNullOrBlank()) {
+            if (legacyPassword.isNotBlank()) context.favoriteStore.edit { it.remove(LEGACY_PROVIDER_PASSWORD) }
+            encryptedPassword
+        } else if (legacyPassword.isNotBlank()) {
+            vault.savePassword(legacyPassword) // synchronous; failure leaves legacy password intact
+            context.favoriteStore.edit { it.remove(LEGACY_PROVIDER_PASSWORD) }
+            legacyPassword
+        } else ""
         providerLoaded = true
     }
     val api = remember { XtreamApi() }
@@ -196,7 +208,13 @@ private fun FreedomApp() {
                                             val auth = api.authenticate(creds)
                                             val catalog = api.loadLiveCatalog(creds)
                                             credentials = creds; categories = catalog.categories; channels = catalog.channels
-                                            context.favoriteStore.edit { prefs -> prefs[PROVIDER_SERVER] = creds.server; prefs[PROVIDER_USERNAME] = creds.username; prefs[PROVIDER_PASSWORD] = creds.password }
+                                            // Save secret first; publish metadata only after encrypted write succeeds.
+                                            CredentialVault(context).savePassword(creds.password)
+                                            context.favoriteStore.edit { prefs ->
+                                                prefs[PROVIDER_SERVER] = creds.server
+                                                prefs[PROVIDER_USERNAME] = creds.username
+                                                prefs.remove(LEGACY_PROVIDER_PASSWORD)
+                                            }
                                             connected = true; selectedCategory = "all"; page = "Live TV"
                                             result = "Loaded ${catalog.channels.size} channels • ${catalog.categories.size} categories • ${auth.status ?: "Active"}"
                                         } catch (e: Exception) { connected = false; result = e.message ?: "Connection failed." }
@@ -209,7 +227,7 @@ private fun FreedomApp() {
                                         context.favoriteStore.edit { prefs ->
                                             prefs.remove(PROVIDER_SERVER)
                                             prefs.remove(PROVIDER_USERNAME)
-                                            prefs.remove(PROVIDER_PASSWORD)
+                                            prefs.remove(LEGACY_PROVIDER_PASSWORD)
                                         }
                                         mediaPlayer.exoPlayer.stop()
                                         currentChannel = null
