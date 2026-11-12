@@ -1,6 +1,6 @@
 package com.hurricanes92.freedomiptv.provider.xtream
 
-import kotlinx.coroutines.Dispatchers
+import com.hurricanes92.freedomiptv.provider.xtream.XtreamCredentials\nimport kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
