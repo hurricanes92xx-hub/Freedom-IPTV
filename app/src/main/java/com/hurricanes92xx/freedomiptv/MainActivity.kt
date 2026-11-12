@@ -111,6 +111,21 @@ private fun FreedomApp() {
 
     val filtered = channels.filter { (selectedCategory == "all" || it.categoryId == selectedCategory) && it.name.contains(search.trim(), true) }
     val categoryCounts = channels.groupingBy { it.categoryId }.eachCount()
+    fun refreshProvider() {
+        if (credentials == null || busy) return
+        busy = true
+        scope.launch {
+            try {
+                val creds = credentials!!
+                val catalog = api.loadLiveCatalog(creds)
+                categories = catalog.categories
+                channels = catalog.channels
+                result = "Refreshed ${catalog.channels.size} channels."
+            } catch (e: Exception) {
+                result = "Refresh failed: ${e.message ?: "connection error"}"
+            } finally { busy = false }
+        }
+    }
 
     MaterialTheme(colorScheme = darkColorScheme(primary = FreedomRed, secondary = FreedomBlue, background = FreedomBlack, surface = Panel)) {
         Row(Modifier.fillMaxSize().background(FreedomBlack)) {
@@ -177,7 +192,10 @@ private fun FreedomApp() {
                     "Live TV", "Search" -> {
                         if (!connected || channels.isEmpty()) EmptyState("Connect a provider to load channels.") { page = "Add Provider" }
                         else Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedTextField(search, { search = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Search ${channels.size} channels") }, singleLine = true)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedTextField(search, { search = it }, modifier = Modifier.weight(1f), label = { Text("Search ${channels.size} channels") }, singleLine = true)
+                                IconButton(onClick = { refreshProvider() }, enabled = connected && !busy) { Text("↻", color = FreedomRed, fontSize = 24.sp) }
+                            }
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 item { FilterChip(selected = selectedCategory == "all", onClick = { selectedCategory = "all" }, label = { Text("All") }) }
                                 items(categories, key = { it.id }) { cat ->
