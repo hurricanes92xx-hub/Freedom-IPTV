@@ -289,6 +289,7 @@ private fun FreedomApp() {
                             Text(currentChannel?.name ?: "Channel", color = Color.White, fontSize = 22.sp)
                             AndroidView(factory = { ctx -> PlayerView(ctx).apply { player = mediaPlayer.exoPlayer; useController = true } }, modifier = Modifier.fillMaxWidth().height(420.dp), update = { it.player = mediaPlayer.exoPlayer })
                             Text("If the stream stalls or errors, tap Retry to reconnect.", color = Color.LightGray)
+                            mediaPlayer.lastPlaybackError?.let { error -> Text("Playback error: $error", color = FreedomRed) }
                             OutlinedButton(onClick = { mediaPlayer.retry() }) { Text("Retry stream") }
                             Button(onClick = { mediaPlayer.exoPlayer.stop(); currentChannel = null; page = "Live TV" }) { Text("Back to channels") }
                         }
