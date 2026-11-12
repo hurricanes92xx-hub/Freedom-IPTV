@@ -10,6 +10,7 @@ android {
         applicationId = "com.hurricanes92.freedomiptv"
         minSdk = 23
         targetSdk = 35
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         versionCode = 1
         versionName = "0.1.0"
     }
