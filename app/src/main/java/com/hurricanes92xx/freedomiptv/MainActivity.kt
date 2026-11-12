@@ -86,6 +86,7 @@ private fun FreedomApp() {
         password = prefs[PROVIDER_PASSWORD] ?: ""
         providerLoaded = true
     }
+    val api = remember { XtreamApi() }
     LaunchedEffect(providerLoaded) {
         if (providerLoaded && username.isNotBlank() && password.isNotBlank() && server.startsWith("https://")) {
             busy = true
@@ -103,7 +104,6 @@ private fun FreedomApp() {
         }
     }
     fun updateFavorites(next: Set<String>) { favorites = next; scope.launch { context.favoriteStore.edit { prefs -> prefs[FAVORITE_IDS] = next } } }
-    val api = remember { XtreamApi() }
     val mediaPlayer = remember { FreedomPlayer(context) }
     DisposableEffect(mediaPlayer) { onDispose { mediaPlayer.release() } }
     LaunchedEffect(currentChannel?.id, currentChannel?.streamUrl) { currentChannel?.let { mediaPlayer.play(it.id, it.streamUrl) } }
@@ -179,7 +179,7 @@ private fun FreedomApp() {
                     "Home" -> Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(if (busy) "Restoring provider…" else if (connected) "Provider connected" else "Welcome to Freedom IPTV", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                            Text(if (connected) "${channels.size} channels loaded and ready." else result ?: "Connect your IPTV provider to get started."), color = Color.LightGray)
+                            Text(if (connected) "${channels.size} channels loaded and ready." else result ?: "Connect your IPTV provider to get started.", color = Color.LightGray)
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Button(onClick = { page = "Add Provider" }) { Text(if (connected) "Manage Provider" else "Add Provider") }
                                 OutlinedButton(onClick = { page = "Live TV" }) { Text("Browse Channels") }
