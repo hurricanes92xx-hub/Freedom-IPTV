@@ -57,6 +57,7 @@ private fun FreedomApp() {
     var guideBusy by remember { mutableStateOf(false) }
     var guideMessage by remember { mutableStateOf("Connect a provider to load the guide.") }
     var guide by remember { mutableStateOf<Map<String, List<com.hurricanes92xx.freedomiptv.provider.xtream.XtreamProgramme>>>(emptyMap()) }
+    var favorites by remember { mutableStateOf<Set<String>>(emptySet()) }
     val scope = rememberCoroutineScope()
     val api = remember { XtreamApi() }
     val context = LocalContext.current
@@ -123,6 +124,7 @@ private fun FreedomApp() {
                                     Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth().clickable { currentChannel = channel; page = "Player" }) {
                                         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                                             Text(channel.name, color = Color.White, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                                            TextButton(onClick = { favorites = if (channel.id in favorites) favorites - channel.id else favorites + channel.id }) { Text(if (channel.id in favorites) "★" else "☆", color = FreedomRed) }
                                             Text("▶", color = FreedomRed)
                                         }
                                     }
@@ -145,6 +147,34 @@ private fun FreedomApp() {
                             Text(currentChannel?.name ?: "Channel", color = Color.White, fontSize = 22.sp)
                             AndroidView(factory = { ctx -> PlayerView(ctx).apply { player = mediaPlayer.exoPlayer; useController = true } }, modifier = Modifier.fillMaxWidth().height(420.dp), update = { it.player = mediaPlayer.exoPlayer })
                             Button(onClick = { mediaPlayer.exoPlayer.stop(); currentChannel = null; page = "Live TV" }) { Text("Back to channels") }
+                        }
+                    }
+                    "Favorites" -> {
+                        val favoriteChannels = channels.filter { it.id in favorites }
+                        if (favoriteChannels.isEmpty()) EmptyState("Your favorites will appear here. Tap ☆ on any channel to save it.") { page = "Live TV" }
+                        else LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(favoriteChannels, key = { it.id }) { channel ->
+                                Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth().clickable { currentChannel = channel; page = "Player" }) {
+                                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Text(channel.name, color = Color.White, modifier = Modifier.weight(1f))
+                                        TextButton(onClick = { favorites = favorites - channel.id }) { Text("★", color = FreedomRed) }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    "Sports" -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("Sports channels from your provider", color = Color.LightGray)
+                            val sports = channels.filter { channel -> (channel.name + " " + channel.categoryId).contains(Regex("sport|nba|nfl|nhl|mlb|soccer|football|racing", RegexOption.IGNORE_CASE)) }
+                            if (sports.isEmpty()) EmptyState("No sports channels detected in the loaded lineup.") { page = "Live TV" }
+                            else LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                items(sports, key = { it.id }) { channel ->
+                                    Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth().clickable { currentChannel = channel; page = "Player" }) {
+                                        Text("▶  " + channel.name, color = Color.White, modifier = Modifier.padding(14.dp))
+                                    }
+                                }
+                            }
                         }
                     }
                     "Guide" -> {
