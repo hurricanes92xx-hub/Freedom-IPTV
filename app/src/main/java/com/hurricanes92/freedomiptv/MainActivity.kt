@@ -465,7 +465,7 @@ private fun FreedomApp() {
                                                 AsyncImage(model = game.home.logoUrl, contentDescription = game.home.name, modifier = Modifier.size(42.dp))
                                                 Spacer(Modifier.width(10.dp))
                                                 Column(horizontalAlignment = Alignment.End) {
-                                                    Text(when(game.state) { GameState.LIVE -> "LIVE"; GameState.FINAL -> "FINAL"; GameState.POSTPONED -> "POSTP."; GameState.CANCELED -> "CANCELED"; else -> "UPCOMING" }, color = if(game.state == GameState.LIVE) FreedomRed else Color.LightGray, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                                    Text(if(game.state == GameState.LIVE) listOfNotNull("LIVE", game.period, game.clock).joinToString(" • ") else when(game.state) { GameState.FINAL -> "FINAL"; GameState.POSTPONED -> "POSTP."; GameState.CANCELED -> "CANCELED"; else -> "UPCOMING" }, color = if(game.state == GameState.LIVE) FreedomRed else Color.LightGray, fontWeight = FontWeight.Bold, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                     if(game.homeScore != null || game.awayScore != null) Text("${game.awayScore ?: 0} - ${game.homeScore ?: 0}", color = if(game.state == GameState.LIVE) Color(0xFFFFD166) else Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                                                     game.period?.let { Text(it, color = Color(0xFFFFD166), fontSize = 10.sp, fontWeight = FontWeight.Bold) }
                                                     game.clock?.let { Text(it, color = Color(0xFF9BA8BA), fontSize = 10.sp) }
