@@ -10,7 +10,7 @@ import coil.memory.MemoryCache
 class FreedomApplication : Application(), ImageLoaderFactory {
     override fun newImageLoader(): ImageLoader = ImageLoader.Builder(this)
         .memoryCache {
-            MemoryCache.Builder(this@FreedomApplication).maxSizePercent(0.20).build()
+            MemoryCache.Builder().maxSizePercent(0.20).build()
         }
         .diskCache {
             DiskCache.Builder()
