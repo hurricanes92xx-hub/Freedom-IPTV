@@ -1,4 +1,4 @@
-package com.hurricanes92.freedomiptv.provider.xtream
+package com.hurricanes92xx.freedomiptv.provider.xtream
 
 
 import kotlinx.coroutines.Dispatchers
