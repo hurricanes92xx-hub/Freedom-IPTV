@@ -30,13 +30,13 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import kotlinx.coroutines.flow.first
 import android.content.Context
-
-private val Context.favoriteStore by preferencesDataStore(name = "freedom_favorites")
-private val FAVORITE_IDS = stringSetPreferencesKey("channel_ids")
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamApi
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamCredentials
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamCategory
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamLiveChannel
+
+private val Context.favoriteStore by preferencesDataStore(name = "freedom_favorites")
+private val FAVORITE_IDS = stringSetPreferencesKey("channel_ids")
 
 private val FreedomRed = Color(0xFFF04452)
 private val FreedomBlue = Color(0xFF2878FF)
