@@ -366,7 +366,28 @@ private fun FreedomApp() {
                                 items(vodCategories, key = { it.id }) { cat -> FilterChip(selected = vodCategory == cat.id, onClick = { vodCategory = cat.id }, label = { Text(cat.name, maxLines = 1) }) }
                             }
                             val visibleVod = vodItems.filter { (vodCategory == "all" || it.categoryId == vodCategory) && it.name.contains(vodSearch.trim(), true) }
-                            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            if (vodBusy && vodItems.isEmpty()) {
+                                Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        CircularProgressIndicator(color = FreedomRed)
+                                        Text("Loading catalog…", color = Color.LightGray)
+                                    }
+                                }
+                            } else if (visibleVod.isEmpty()) {
+                                EmptyState(if (credentials == null) "Connect an Xtream provider to browse titles." else if (vodItems.isEmpty()) "Catalog is empty or failed to load. Tap Retry to try again." else "No titles match this search/category.") {
+                                    if (credentials != null) scope.launch {
+                                        vodBusy = true
+                                        try {
+                                            val c = credentials!!
+                                            vodCategories = if (isSeries) vodApi.seriesCategories(c) else vodApi.movieCategories(c)
+                                            vodItems = if (isSeries) vodApi.series(c) else vodApi.movies(c)
+                                            vodSeriesMode = isSeries
+                                            vodMessage = "${vodItems.size} titles loaded"
+                                        } catch (e: Exception) { vodMessage = e.message ?: "Catalog failed." }
+                                        finally { vodBusy = false }
+                                    } else page = "Add Provider"
+                                }
+                            } else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 items(visibleVod, key = { it.id }) { item ->
                                     Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth().clickable {
                                         selectedVod = item
