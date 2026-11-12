@@ -27,3 +27,13 @@ fun parseXtreamChannels(jsonArray: org.json.JSONArray): List<XtreamChannel> = bu
         add(XtreamChannel(id, name, item.stringOrNull("category_id"), item.stringOrNull("stream_icon"), item.stringOrNull("epg_channel_id")))
     }
 }
+
+
+/** Programme row persisted by the guide. Times are UTC epoch seconds. */
+data class GuideProgramme(
+    val channelId: String,
+    val title: String,
+    val description: String,
+    val startEpochSeconds: Long,
+    val endEpochSeconds: Long
+)
