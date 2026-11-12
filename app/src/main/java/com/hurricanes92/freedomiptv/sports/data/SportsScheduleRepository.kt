@@ -36,9 +36,12 @@ class SportsScheduleRepository(
         // API-Football supplements partial ESPN soccer dates; dedupe merged games below.
         val football = if (competition.sport == Sport.SOCCER)
             runCatching { apiFootball.schedule(competition, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList()) else emptyList()
-        (soccerBase + football).distinctBy { game ->
+        val merged = (soccerBase + football).distinctBy { game ->
             "${game.competitionId}:${game.startUtcMillis / 60000}:${game.home.name.lowercase().replace(Regex("[^a-z0-9]"), "")}:${game.away.name.lowercase().replace(Regex("[^a-z0-9]"), "")}"
         }.sortedBy { it.startUtcMillis }
+        scheduleCache[cacheKey] = CachedSchedule(System.currentTimeMillis(), merged)
+        if (scheduleCache.size > 120) scheduleCache.entries.removeIf { System.currentTimeMillis() - it.value.savedAt > cacheTtlMillis }
+        merged
     }
 
     suspend fun liveScores(competition: Competition): List<Game> {
