@@ -35,5 +35,4 @@ class FreedomPlayer(context: Context) {
         exoPlayer.playWhenReady = true
     }
 
-    fun retry() { exoPlayer.seekToDefaultPosition(); exoPlayer.prepare(); exoPlayer.playWhenReady = true }\n\n    fun release() { exoPlayer.release() }
-}
+    fun retry() {\n        lastPlaybackError = null\n        exoPlayer.seekToDefaultPosition()\n        exoPlayer.prepare()\n        exoPlayer.playWhenReady = true\n    }\n\n    fun release() { exoPlayer.release() }\n}\n
