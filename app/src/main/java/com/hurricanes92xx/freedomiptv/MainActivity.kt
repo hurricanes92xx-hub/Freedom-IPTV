@@ -445,6 +445,10 @@ private fun FreedomApp() {
                         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(selectedVod?.name ?: "Movie", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                             AndroidView(factory = { ctx -> PlayerView(ctx).apply { player = mediaPlayer.exoPlayer; useController = true } }, modifier = Modifier.fillMaxWidth().height(420.dp), update = { it.player = mediaPlayer.exoPlayer })
+                            mediaPlayer.lastPlaybackError?.let { error ->
+                                Text("Playback error: $error", color = FreedomRed)
+                                OutlinedButton(onClick = { mediaPlayer.retry() }) { Text("Retry playback") }
+                            }
                             Button(onClick = { mediaPlayer.exoPlayer.stop(); vodPlayingUrl = null; page = if(vodSeriesMode) "Series Detail" else "Movies" }) { Text(if(vodSeriesMode) "Back to episodes" else "Back to movies") }
                         }
                     }
