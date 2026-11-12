@@ -15,14 +15,16 @@ import java.time.temporal.ChronoUnit
 class SportsScheduleRepository(
     private val espn: EspnScheduleProvider = EspnScheduleProvider(),
     private val sportsDb: TheSportsDbProvider = TheSportsDbProvider(),
-    private val apiFootball: ApiFootballScheduleProvider = ApiFootballScheduleProvider(),\n    private val ncaa: NcaaScheduleProvider = NcaaScheduleProvider()
+    private val apiFootball: ApiFootballScheduleProvider = ApiFootballScheduleProvider(),
+    private val ncaa: NcaaScheduleProvider = NcaaScheduleProvider()
 ) {
     suspend fun schedule(competition: Competition, fromUtcMillis: Long, toUtcMillis: Long): List<Game> = coroutineScope {
         if (toUtcMillis < fromUtcMillis) return@coroutineScope emptyList()
         val primary = async { runCatching { espn.schedule(competition, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList()) }.await()
         val days = generateSequence(Instant.ofEpochMilli(fromUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()) { it.plusDays(1) }
             .takeWhile { !it.isAfter(Instant.ofEpochMilli(toUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()) }.take(15).toList()
-        val college = if (competition.college && primary.isEmpty()) runCatching { ncaa.schedule(competition, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList()) else emptyList()\n        val secondary = if ((primary.isEmpty() && college.isEmpty()) || competition.sport == Sport.COMBAT) {
+        val college = if (competition.college && primary.isEmpty()) runCatching { ncaa.schedule(competition, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList()) else emptyList()
+        val secondary = if ((primary.isEmpty() && college.isEmpty()) || competition.sport == Sport.COMBAT) {
             days.flatMap { day -> runCatching { sportsDb.schedule(competition, day.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()) }.getOrDefault(emptyList()) }
         } else emptyList()
         val football = if (competition.sport == Sport.SOCCER && primary.isEmpty() && secondary.isEmpty())
