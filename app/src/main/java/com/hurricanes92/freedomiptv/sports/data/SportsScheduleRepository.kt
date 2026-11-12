@@ -33,7 +33,8 @@ class SportsScheduleRepository(
             days.flatMap { day -> runCatching { sportsDb.schedule(competition, day.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()) }.getOrDefault(emptyList()) }
         } else emptyList()
         val soccerBase = espnGames + ncaaGames + secondary
-        val football = if (competition.sport == Sport.SOCCER && soccerBase.isEmpty())
+        // API-Football supplements partial ESPN soccer dates; dedupe merged games below.
+        val football = if (competition.sport == Sport.SOCCER)
             runCatching { apiFootball.schedule(competition, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList()) else emptyList()
         (soccerBase + football).distinctBy { game ->
             "${game.competitionId}:${game.startUtcMillis / 60000}:${game.home.name.lowercase().replace(Regex("[^a-z0-9]"), "")}:${game.away.name.lowercase().replace(Regex("[^a-z0-9]"), "")}"
