@@ -186,6 +186,7 @@ private fun FreedomApp() {
                                         label = { Text(cat.name + " (" + (categoryCounts[cat.id] ?: 0) + ")", maxLines = 1) }
                                     )
                                 }
+                            }
                             Text("${filtered.size} channels", color = Color.LightGray)
                             LazyColumn(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                                 items(filtered, key = { it.id }) { channel ->
