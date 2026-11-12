@@ -519,7 +519,9 @@ private fun EmptyState(message: String, action: () -> Unit) {
 private fun ArtworkFallbackImage(title: String, isSeries: Boolean, providerPoster: String?, modifier: Modifier = Modifier) {
     var fallbackUrl by remember(title, isSeries) { mutableStateOf<String?>(null) }
     LaunchedEffect(title, isSeries, providerPoster) {
-        if (providerPoster.isNullOrBlank() && isSeries) fallbackUrl = TvmazeArtwork.lookup(title)
+        if (providerPoster.isNullOrBlank()) {
+            fallbackUrl = if (isSeries) TvmazeArtwork.lookup(title) else CinemetaArtwork.lookup(title)
+        }
     }
     Box(modifier, contentAlignment = Alignment.Center) {
         Text("🎬", fontSize = 30.sp)
@@ -541,6 +543,30 @@ private object TvmazeArtwork {
                 for (i in 0 until results.length()) {
                     val image = results.optJSONObject(i)?.optJSONObject("show")?.optJSONObject("image")
                     val poster = image?.optString("original")?.takeIf { it.isNotBlank() && it != "null" } ?: image?.optString("medium")?.takeIf { it.isNotBlank() && it != "null" }
+                    if (poster != null) { cache[key] = poster; return@withContext poster }
+                }
+            }
+        } catch (_: Exception) { }
+        null
+    }
+}
+
+private object CinemetaArtwork {
+    private val cache = java.util.concurrent.ConcurrentHashMap<String, String>()
+    private val client = okhttp3.OkHttpClient.Builder().connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS).readTimeout(5, java.util.concurrent.TimeUnit.SECONDS).build()
+    suspend fun lookup(title: String): String? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val key = title.trim().lowercase()
+        cache[key]?.let { return@withContext it }
+        try {
+            val query = java.net.URLEncoder.encode(title.trim(), "UTF-8").replace("+", "%20")
+            val url = "https://v3-cinemeta.strem.io/catalog/movie/top/search=$query.json"
+            val request = okhttp3.Request.Builder().url(url).header("User-Agent", "FreedomIPTV/1.0").build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext null
+                val metas = org.json.JSONObject(response.body?.string().orEmpty()).optJSONArray("metas") ?: return@withContext null
+                for (i in 0 until metas.length()) {
+                    val meta = metas.optJSONObject(i) ?: continue
+                    val poster = meta.optString("poster").takeIf { it.isNotBlank() && it != "null" }
                     if (poster != null) { cache[key] = poster; return@withContext poster }
                 }
             }
