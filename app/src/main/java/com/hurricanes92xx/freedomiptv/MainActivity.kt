@@ -109,7 +109,6 @@ private fun FreedomApp() {
     var guideBusy by remember { mutableStateOf(false) }
     var guideMessage by remember { mutableStateOf("Connect a provider to load the guide.") }
     var guideUpdatedAt by remember { mutableStateOf<String?>(null) }
-    var guideSearch by remember { mutableStateOf("") }
     var guide by remember { mutableStateOf<Map<String, List<com.hurricanes92xx.freedomiptv.provider.xtream.XtreamProgramme>>>(emptyMap()) }
     var favorites by remember { mutableStateOf<Set<String>>(emptySet()) }
     val scope = rememberCoroutineScope()
