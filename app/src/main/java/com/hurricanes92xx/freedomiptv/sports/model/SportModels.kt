@@ -8,7 +8,7 @@ enum class Competition(val id:String,val label:String,val sport:Sport,val colleg
  NCAAM_D1("ncaam-d1","NCAA Men's Basketball D1",Sport.BASKETBALL,true),NCAAM_D2("ncaam-d2","NCAA Men's Basketball D2",Sport.BASKETBALL,true),NCAAM_D3("ncaam-d3","NCAA Men's Basketball D3",Sport.BASKETBALL,true),
  NCAAW_D1("ncaaw-d1","NCAA Women's Basketball D1",Sport.BASKETBALL,true),NCAAW_D2("ncaaw-d2","NCAA Women's Basketball D2",Sport.BASKETBALL,true),NCAAW_D3("ncaaw-d3","NCAA Women's Basketball D3",Sport.BASKETBALL,true),
  NCAAVB_W("ncaavb-w","NCAA Women's Volleyball",Sport.VOLLEYBALL,true),NCAABASE("ncaabase","NCAA Baseball",Sport.BASEBALL,true),NCAAGYM_W("ncaagym-w","NCAA Women's Gymnastics",Sport.GYMNASTICS,true),
- EPL("epl","Premier League",Sport.SOCCER),UCL("ucl","Champions League",Sport.SOCCER),UFC("ufc","UFC",Sport.COMBAT),BOXING("boxing","Boxing",Sport.COMBAT),WWE("wwe","WWE",Sport.COMBAT),AEW("aew","AEW",Sport.COMBAT),F1("f1","Formula 1",Sport.MOTORSPORT),NASCAR("nascar","NASCAR",Sport.MOTORSPORT),ATP("atp","ATP Tennis",Sport.TENNIS),WTA("wta","WTA Tennis",Sport.TENNIS),PGA("pga","PGA Tour",Sport.GOLF),LPGA("lpga","LPGA",Sport.GOLF)
+ EPL("epl","Premier League",Sport.SOCCER),UCL("ucl","Champions League",Sport.SOCCER),UFC("ufc","UFC",Sport.COMBAT),BOXING("boxing","Boxing",Sport.COMBAT),WWE("wwe","WWE",Sport.COMBAT),AEW("aew","AEW",Sport.COMBAT),TNA("tna","TNA Wrestling",Sport.COMBAT)
 }
 enum class GameState { SCHEDULED,LIVE,FINAL,POSTPONED,CANCELED,UNKNOWN }
 data class Team(val id:String,val name:String,val shortName:String?=null,val logoUrl:String?=null,val competitionId:String)
