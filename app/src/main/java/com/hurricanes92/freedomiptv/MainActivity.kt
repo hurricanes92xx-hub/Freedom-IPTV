@@ -2,7 +2,7 @@ package com.hurricanes92xx.freedomiptv
 import com.hurricanes92xx.freedomiptv.sports.model.GameState
 import com.hurricanes92xx.freedomiptv.sports.model.Game
 import com.hurricanes92xx.freedomiptv.sports.model.Competition
-import com.hurricanes92xx.freedomiptv.sports.data.EspnScheduleProvider
+import com.hurricanes92xx.freedomiptv.sports.data.SportsScheduleRepository
 
 import android.os.Bundle
 import android.net.Uri
@@ -344,7 +344,7 @@ private fun FreedomApp() {
                         var sportFilter by remember { mutableStateOf("All") }
                         val filterTerms = mapOf("Football" to Regex("football|nfl|college football", RegexOption.IGNORE_CASE), "Basketball" to Regex("basketball|nba|wnba", RegexOption.IGNORE_CASE), "Baseball" to Regex("baseball|mlb", RegexOption.IGNORE_CASE), "Hockey" to Regex("hockey|nhl", RegexOption.IGNORE_CASE), "Soccer" to Regex("soccer|mls|epl|champions league", RegexOption.IGNORE_CASE), "Volleyball" to Regex("volleyball", RegexOption.IGNORE_CASE), "Combat" to Regex("ufc|mma|boxing", RegexOption.IGNORE_CASE), "Wrestling" to Regex("wwe|aew|tna|wrestling", RegexOption.IGNORE_CASE))
                         val visibleSports = sports.filter { channel -> sportFilter == "All" || (channel.name + " " + (categoryNames[channel.categoryId] ?: "")).contains(filterTerms[sportFilter] ?: Regex("(?!)")) }
-                        val scheduleProvider = remember { EspnScheduleProvider() }
+                        val scheduleProvider = remember { SportsScheduleRepository() }
                         var selectedCompetition by remember { mutableStateOf(Competition.NFL) }
                         var scheduleDayOffset by remember { mutableIntStateOf(0) }
                         var scheduledGames by remember { mutableStateOf<List<Game>>(emptyList()) }
@@ -382,7 +382,7 @@ private fun FreedomApp() {
                                 Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text("SCHEDULE & SCORES", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                                        Spacer(Modifier.weight(1f)); Text(if(scheduleLoading) "LOADING" else "ESPN", color = Color(0xFF9BA8BA), fontSize = 11.sp)
+                                        Spacer(Modifier.weight(1f)); Text(if(scheduleLoading) "LOADING" else "ESPN • NCAA • TSDb", color = Color(0xFF9BA8BA), fontSize = 11.sp)
                                     }
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         items(listOf(Competition.NFL, Competition.NBA, Competition.MLB, Competition.NHL, Competition.WNBA, Competition.MLS, Competition.NCAAF_FBS, Competition.NCAAF_FCS, Competition.NCAAM_D1, Competition.NCAAM_D2, Competition.NCAAM_D3, Competition.NCAAW_D1, Competition.NCAAW_D2, Competition.NCAAW_D3, Competition.NCAAVB_W, Competition.NCAABASE, Competition.NCAAGYM_W)) { comp ->
