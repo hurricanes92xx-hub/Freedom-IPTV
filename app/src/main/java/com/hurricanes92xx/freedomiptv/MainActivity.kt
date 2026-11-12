@@ -179,8 +179,13 @@ private fun FreedomApp() {
                             OutlinedTextField(search, { search = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Search ${channels.size} channels") }, singleLine = true)
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 FilterChip(selected = selectedCategory == "all", onClick = { selectedCategory = "all" }, label = { Text("All") })
-                                categories.forEach { cat -> FilterChip(selected = selectedCategory == cat.id, onClick = { selectedCategory = cat.id }, label = { Text("${cat.name} (${categoryCounts[cat.id] ?: 0})", maxLines = 1) })
-                            }
+                                categories.forEach { cat ->
+                                    FilterChip(
+                                        selected = selectedCategory == cat.id,
+                                        onClick = { selectedCategory = cat.id },
+                                        label = { Text(cat.name + " (" + (categoryCounts[cat.id] ?: 0) + ")", maxLines = 1) }
+                                    )
+                                }
                             Text("${filtered.size} channels", color = Color.LightGray)
                             LazyColumn(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                                 items(filtered, key = { it.id }) { channel ->
