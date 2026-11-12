@@ -1,5 +1,5 @@
-package com.hurricanes92.freedomiptv.sports.data
-import com.hurricanes92.freedomiptv.sports.model.*
+package com.hurricanes92xx.freedomiptv.sports.data
+import com.hurricanes92xx.freedomiptv.sports.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
