@@ -354,6 +354,7 @@ private fun FreedomApp() {
                         var scheduleDayOffset by remember { mutableIntStateOf(0) }
                         var scheduledGames by remember { mutableStateOf<List<Game>>(emptyList()) }
                         var scheduleLoading by remember { mutableStateOf(false) }
+                        var gameStatusFilter by remember { mutableStateOf("All") }
                         val appContext = LocalContext.current
                         val artworkCache = remember { SportsArtworkCache(appContext) }
                         val combatProvider = remember { CombatScheduleProvider() }
@@ -446,10 +447,14 @@ private fun FreedomApp() {
                                             }
                                         }
                                     }
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        items(listOf("All", "Live", "Upcoming", "Final")) { status -> FilterChip(selected = gameStatusFilter == status, onClick = { gameStatusFilter = status }, label = { Text(status) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = FreedomRed, selectedLabelColor = Color.White)) }
+                                    }
+                                    val filteredGames = scheduledGames.filter { game -> when(gameStatusFilter) { "Live" -> game.state == GameState.LIVE; "Upcoming" -> game.state == GameState.SCHEDULED; "Final" -> game.state == GameState.FINAL; else -> true } }
                                     if(scheduleLoading) Text("Loading schedule…", color = Color.LightGray)
-                                    else if(scheduledGames.isEmpty()) Text("No events for this date. Try another day or competition.", color = Color.LightGray)
-                                    else scheduledGames.take(20).forEach { game ->
-                                        Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+                                    else if(filteredGames.isEmpty()) Text(if(scheduledGames.isEmpty()) "No events for this date. Try another day or competition." else "No ${gameStatusFilter.lowercase()} games in this schedule.", color = Color.LightGray)
+                                    else filteredGames.take(20).forEach { game ->
+                                        Card(colors = CardDefaults.cardColors(containerColor = if(game.state == GameState.LIVE) Color(0xFF2B1820) else Panel), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
                                             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                                 AsyncImage(model = game.away.logoUrl, contentDescription = game.away.name, modifier = Modifier.size(42.dp))
                                                 Column(Modifier.padding(horizontal = 10.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
