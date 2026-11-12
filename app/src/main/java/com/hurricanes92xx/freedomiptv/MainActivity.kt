@@ -253,6 +253,10 @@ private fun FreedomApp() {
                     }
                     "Sports" -> {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("SPORTS HUB • schedules & scores coming online", color = FreedomRed, fontWeight = FontWeight.Bold)
+                            Text("College: FBS/FCS football • men's & women's basketball D1–D3 • women's volleyball • baseball • women's gymnastics", color = Color.LightGray)
+                            Text("Pro: NFL, NBA, MLB, NHL, WNBA, MLS • soccer • combat • racing • tennis • golf", color = Color.LightGray)
+                            Text("Channel detection uses your Xtream lineup; a network match does not guarantee a specific game is airing.", color = Color(0xFF9BA8BA))
                             Text("Sports channels from your provider", color = Color.LightGray)
                             val categoryNames = categories.associate { it.id to it.name }
                             val sportsTerms = Regex("sport|ncaa|college|basketball|volleyball|nba|wnba|nfl|nhl|mlb|soccer|football|ufc|mma|boxing|racing|f1|formula|tennis|golf|cricket|rugby|motorsport|wrestling|espn|fox sports|sky sports|be[in] sports", RegexOption.IGNORE_CASE)
