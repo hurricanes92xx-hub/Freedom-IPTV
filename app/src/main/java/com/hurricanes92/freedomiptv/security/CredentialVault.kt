@@ -1,7 +1,6 @@
 package com.hurricanes92.freedomiptv.security
 
 import android.content.Context
-import android.util.Base64
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
@@ -18,8 +17,9 @@ class CredentialVault(context: Context) {
     )
 
     fun getPassword(): String? = prefs.getString(PASSWORD_KEY, null)
-    fun savePassword(password: String) { prefs.edit().putString(PASSWORD_KEY, password).apply() }
-    fun clearPassword() { prefs.edit().remove(PASSWORD_KEY).apply() }
+    /** commit() guarantees the encrypted value is durable before legacy plaintext is removed. */
+    fun savePassword(password: String): Boolean = prefs.edit().putString(PASSWORD_KEY, password).commit()
+    fun clearPassword(): Boolean = prefs.edit().remove(PASSWORD_KEY).commit()
 
     companion object { private const val PASSWORD_KEY = "xtream_password" }
 }
