@@ -1,6 +1,8 @@
 package com.hurricanes92xx.freedomiptv
 
-import android.os.Bundle\nimport android.net.Uri\nimport org.json.JSONArray
+import android.os.Bundle
+import android.net.Uri
+import org.json.JSONArray
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.ui.viewinterop.AndroidView
@@ -53,7 +55,8 @@ import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamSeason
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamEpisode
 
 private val Context.favoriteStore by preferencesDataStore(name = "freedom_favorites")
-private val FAVORITE_IDS = stringSetPreferencesKey("channel_ids")\nprivate val PLAYLIST_DATA = stringSetPreferencesKey("m3u_channels")
+private val FAVORITE_IDS = stringSetPreferencesKey("channel_ids")
+private val PLAYLIST_DATA = stringSetPreferencesKey("m3u_channels")
 private val PROVIDER_SERVER = stringPreferencesKey("provider_server")
 private val PROVIDER_USERNAME = stringPreferencesKey("provider_username")
 private val PROVIDER_PASSWORD = stringPreferencesKey("provider_password")
@@ -81,7 +84,9 @@ private fun FreedomApp() {
     var channels by remember { mutableStateOf<List<XtreamLiveChannel>>(emptyList()) }
     var playlistChannels by remember { mutableStateOf<List<M3uChannel>>(emptyList()) }
     var playlistBusy by remember { mutableStateOf(false) }
-    var playlistMessage by remember { mutableStateOf("Import an M3U playlist to browse its channels.") }\n    var playlistSearch by remember { mutableStateOf("") }\n    var guideSearch by remember { mutableStateOf("") }
+    var playlistMessage by remember { mutableStateOf("Import an M3U playlist to browse its channels.") }
+    var playlistSearch by remember { mutableStateOf("") }
+    var guideSearch by remember { mutableStateOf("") }
     var categories by remember { mutableStateOf<List<XtreamCategory>>(emptyList()) }
     var selectedCategory by remember { mutableStateOf("all") }
     var search by remember { mutableStateOf("") }
@@ -107,7 +112,8 @@ private fun FreedomApp() {
     val playlistPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if(uri!=null) { playlistBusy=true; scope.launch { try { val list=mutableListOf<M3uChannel>(); val n=M3uCatalogImporter(context.contentResolver).import(uri){ list.add(it) }; playlistChannels=list; context.favoriteStore.edit { prefs -> prefs[PLAYLIST_DATA] = list.map { JSONArray().put(it.name).put(it.url).put(it.group ?: "").put(it.logo ?: "").put(it.tvgId ?: "").toString() }.toSet() }; playlistMessage="Imported $n playlist channels."; page="Playlist" } catch(e:Exception){playlistMessage=e.message?: "Playlist import failed"} finally{playlistBusy=false} } } }
     LaunchedEffect(Unit) {
         val prefs = context.favoriteStore.data.first()
-        favorites = prefs[FAVORITE_IDS] ?: emptySet()\n        playlistChannels = (prefs[PLAYLIST_DATA] ?: emptySet()).mapNotNull { raw -> try { val j=JSONArray(raw); M3uChannel(j.getString(0),j.getString(1),j.optString(2).ifBlank { null },j.optString(3).ifBlank { null },j.optString(4).ifBlank { null }) } catch(_:Exception){null} }
+        favorites = prefs[FAVORITE_IDS] ?: emptySet()
+        playlistChannels = (prefs[PLAYLIST_DATA] ?: emptySet()).mapNotNull { raw -> try { val j=JSONArray(raw); M3uChannel(j.getString(0),j.getString(1),j.optString(2).ifBlank { null },j.optString(3).ifBlank { null },j.optString(4).ifBlank { null }) } catch(_:Exception){null} }
         server = prefs[PROVIDER_SERVER] ?: "https://"
         username = prefs[PROVIDER_USERNAME] ?: ""
         password = prefs[PROVIDER_PASSWORD] ?: ""
