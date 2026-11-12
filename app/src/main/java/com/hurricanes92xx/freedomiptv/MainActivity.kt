@@ -3,6 +3,12 @@ package com.hurricanes92xx.freedomiptv
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.platform.LocalContext
+import androidx.media3.ui.PlayerView
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import com.hurricanes92xx.freedomiptv.player.FreedomPlayer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -49,6 +55,10 @@ private fun FreedomApp() {
     var currentChannel by remember { mutableStateOf<XtreamLiveChannel?>(null) }
     val scope = rememberCoroutineScope()
     val api = remember { XtreamApi() }
+    val context = LocalContext.current
+    val mediaPlayer = remember { FreedomPlayer(context) }
+    DisposableEffect(mediaPlayer) { onDispose { mediaPlayer.release() } }
+    LaunchedEffect(currentChannel?.id, currentChannel?.streamUrl) { currentChannel?.let { mediaPlayer.play(it.id, it.streamUrl) } }
 
     val filtered = channels.filter { (selectedCategory == "all" || it.categoryId == selectedCategory) && it.name.contains(search, true) }
 
@@ -127,8 +137,8 @@ private fun FreedomApp() {
                     "Player" -> Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(currentChannel?.name ?: "Channel", color = Color.White, fontSize = 22.sp)
-                            Text("Channel selected. Media3 playback screen is the next milestone.", color = Color.LightGray)
-                            Button(onClick = { page = "Live TV" }) { Text("Back to channels") }
+                            AndroidView(factory = { ctx -> PlayerView(ctx).apply { player = mediaPlayer.exoPlayer; useController = true } }, modifier = Modifier.fillMaxWidth().height(420.dp), update = { it.player = mediaPlayer.exoPlayer })
+                            Button(onClick = { mediaPlayer.exoPlayer.stop(); currentChannel = null; page = "Live TV" }) { Text("Back to channels") }
                         }
                     }
                     "Guide" -> EmptyState("EPG database and XMLTV import are next. Provider EPG endpoints are being added.") { page = "Live TV" }
