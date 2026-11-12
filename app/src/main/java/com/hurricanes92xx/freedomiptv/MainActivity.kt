@@ -38,6 +38,10 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.first
 import android.content.Context
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.hurricanes92xx.freedomiptv.provider.m3u.M3uCatalogImporter
+import com.hurricanes92xx.freedomiptv.provider.m3u.M3uChannel
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamApi
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamCredentials
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamCategory
@@ -75,6 +79,9 @@ private fun FreedomApp() {
     var connected by remember { mutableStateOf(false) }
     var credentials by remember { mutableStateOf<XtreamCredentials?>(null) }
     var channels by remember { mutableStateOf<List<XtreamLiveChannel>>(emptyList()) }
+    var playlistChannels by remember { mutableStateOf<List<M3uChannel>>(emptyList()) }
+    var playlistBusy by remember { mutableStateOf(false) }
+    var playlistMessage by remember { mutableStateOf("Import an M3U playlist to browse its channels.") }
     var categories by remember { mutableStateOf<List<XtreamCategory>>(emptyList()) }
     var selectedCategory by remember { mutableStateOf("all") }
     var search by remember { mutableStateOf("") }
@@ -97,6 +104,7 @@ private fun FreedomApp() {
     var favorites by remember { mutableStateOf<Set<String>>(emptySet()) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val playlistPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if(uri!=null) { playlistBusy=true; scope.launch { try { val list=mutableListOf<M3uChannel>(); val n=M3uCatalogImporter(context.contentResolver).import(uri){ list.add(it) }; playlistChannels=list; playlistMessage="Imported $n playlist channels."; page="Playlist" } catch(e:Exception){playlistMessage=e.message?: "Playlist import failed"} finally{playlistBusy=false} } } }
     LaunchedEffect(Unit) {
         val prefs = context.favoriteStore.data.first()
         favorites = prefs[FAVORITE_IDS] ?: emptySet()
@@ -152,7 +160,7 @@ private fun FreedomApp() {
                 Text("🦅 FREEDOM", color = Color.White, fontSize = 23.sp, fontWeight = FontWeight.Black)
                 Text("IPTV", color = FreedomRed, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(20.dp))
-                listOf("Home", "Live TV", "Movies", "Series", "Guide", "Sports", "Favorites", "Search", "Settings", "Add Provider").forEach { item ->
+                listOf("Home", "Live TV", "Playlist", "Movies", "Series", "Guide", "Sports", "Favorites", "Search", "Settings", "Add Provider").forEach { item ->
                     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(if (page == item) FreedomRed.copy(alpha = 0.18f) else Color.Transparent).clickable { page = item }.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(item, color = if (page == item) FreedomRed else Color.LightGray, fontWeight = if (page == item) FontWeight.Bold else FontWeight.Normal)
                     }
@@ -208,7 +216,7 @@ private fun FreedomApp() {
                             result?.let { Text(it, color = if (connected) Color(0xFF70D6A0) else Color(0xFFFF8A92)) }
                         }
                     }
-                    "Live TV", "Search" -> {
+                    "Playlist" -> {\n                        Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){ Button(enabled=!playlistBusy,onClick={playlistPicker.launch(arrayOf("audio/x-mpegurl","application/vnd.apple.mpegurl","text/plain"))}){Text(if(playlistBusy) "Importing…" else "Import M3U")} Text(playlistMessage,color=Color.LightGray) }\n                        LazyColumn(verticalArrangement=Arrangement.spacedBy(6.dp)){items(playlistChannels,key={it.url}){ ch -> Card(colors=CardDefaults.cardColors(containerColor=Panel),modifier=Modifier.fillMaxWidth().clickable { currentChannel=XtreamLiveChannel(ch.url,ch.name,null,ch.logo,ch.tvgId,ch.url);page="Player" }){Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically){AsyncImage(model=ch.logo,contentDescription=null,modifier=Modifier.size(42.dp).clip(RoundedCornerShape(6.dp)));Text(ch.name,color=Color.White,modifier=Modifier.padding(start=12.dp).weight(1f));Text("▶",color=FreedomRed)} } } }\n                    }\n                    "Live TV", "Search" -> {
                         if (!connected || channels.isEmpty()) EmptyState("Connect a provider to load channels.") { page = "Add Provider" }
                         else Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -332,7 +340,7 @@ private fun FreedomApp() {
                                         else { seriesBusy = true; seriesSeasons = emptyList(); selectedSeason = null; page = "Series Detail"; scope.launch { try { seriesSeasons = vodApi.seriesSeasons(credentials!!, item.id); selectedSeason = seriesSeasons.firstOrNull()?.number; vodMessage = "${seriesSeasons.sumOf { it.episodes.size }} episodes loaded" } catch (e: Exception) { vodMessage = e.message ?: "Series detail failed" } finally { seriesBusy = false } } }
                                     }) {
                                         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                            AsyncImage(model = item.poster, contentDescription = item.name, modifier = Modifier.width(100.dp).height(145.dp).clip(RoundedCornerShape(8.dp)))
+                                            AsyncImage(model = item.poster, contentDescription = item.name, modifier = Modifier.width(110.dp).height(160.dp).clip(RoundedCornerShape(10.dp)), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
                                             Column(Modifier.padding(start = 14.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                                 Text(item.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                                                 item.rating?.let { Text("★ $it", color = FreedomRed) }
@@ -389,7 +397,7 @@ private fun FreedomApp() {
                                 scope.launch {
                                     try {
                                         val creds = credentials ?: error("Connect first.")
-                                        val epgChannels = channels.take(60)
+                                        val epgChannels = channels
                                         val limiter = Semaphore(6)
                                         guide = coroutineScope {
                                             epgChannels.map { channel ->
