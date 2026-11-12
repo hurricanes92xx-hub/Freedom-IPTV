@@ -4,7 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,6 +20,8 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamApi
 import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamCredentials
+import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamCategory
+import com.hurricanes92xx.freedomiptv.provider.xtream.XtreamLiveChannel
 
 private val FreedomRed = Color(0xFFF04452)
 private val FreedomBlue = Color(0xFF2878FF)
@@ -24,10 +29,7 @@ private val FreedomBlack = Color(0xFF080B10)
 private val Panel = Color(0xFF111722)
 
 class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent { FreedomApp() }
-    }
+    override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); setContent { FreedomApp() } }
 }
 
 @Composable
@@ -39,8 +41,16 @@ private fun FreedomApp() {
     var busy by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<String?>(null) }
     var connected by remember { mutableStateOf(false) }
+    var credentials by remember { mutableStateOf<XtreamCredentials?>(null) }
+    var channels by remember { mutableStateOf<List<XtreamLiveChannel>>(emptyList()) }
+    var categories by remember { mutableStateOf<List<XtreamCategory>>(emptyList()) }
+    var selectedCategory by remember { mutableStateOf("all") }
+    var search by remember { mutableStateOf("") }
+    var currentChannel by remember { mutableStateOf<XtreamLiveChannel?>(null) }
     val scope = rememberCoroutineScope()
     val api = remember { XtreamApi() }
+
+    val filtered = channels.filter { (selectedCategory == "all" || it.categoryId == selectedCategory) && it.name.contains(search, true) }
 
     MaterialTheme(colorScheme = darkColorScheme(primary = FreedomRed, secondary = FreedomBlue, background = FreedomBlack, surface = Panel)) {
         Row(Modifier.fillMaxSize().background(FreedomBlack)) {
@@ -56,10 +66,10 @@ private fun FreedomApp() {
                 Text(page.uppercase(), color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(20.dp))
                 when (page) {
-                    "Add Provider" -> Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(18.dp), modifier = Modifier.widthIn(max = 620.dp).fillMaxWidth()) {
+                    "Add Provider" -> Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.widthIn(max = 620.dp).fillMaxWidth()) {
                         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                             Text("Connect your Xtream provider", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                            Text("Enter the HTTPS server address and the credentials supplied by your IPTV service.", color = Color.LightGray)
+                            Text("Use the HTTPS server address and credentials from your IPTV service.", color = Color.LightGray)
                             OutlinedTextField(server, { server = it; result = null }, modifier = Modifier.fillMaxWidth(), label = { Text("Server URL (https://)") }, singleLine = true)
                             OutlinedTextField(username, { username = it; result = null }, modifier = Modifier.fillMaxWidth(), label = { Text("Username") }, singleLine = true)
                             OutlinedTextField(password, { password = it; result = null }, modifier = Modifier.fillMaxWidth(), label = { Text("Password") }, singleLine = true)
@@ -68,40 +78,73 @@ private fun FreedomApp() {
                                     busy = true; result = null
                                     scope.launch {
                                         try {
-                                            val auth = api.authenticate(XtreamCredentials(server, username, password))
-                                            connected = true
-                                            result = "Connected • Account status: ${auth.status ?: "Active"}"
-                                        } catch (e: Exception) {
-                                            connected = false
-                                            result = e.message ?: "Unable to connect. Check the server and credentials."
-                                        } finally { busy = false }
+                                            val creds = XtreamCredentials(server.trim(), username.trim(), password)
+                                            val auth = api.authenticate(creds)
+                                            val catalog = api.loadLiveCatalog(creds)
+                                            credentials = creds; categories = catalog.categories; channels = catalog.channels
+                                            connected = true; selectedCategory = "all"; page = "Live TV"
+                                            result = "Loaded ${catalog.channels.size} channels • ${catalog.categories.size} categories • ${auth.status ?: "Active"}"
+                                        } catch (e: Exception) { connected = false; result = e.message ?: "Connection failed." }
+                                        finally { busy = false }
                                     }
-                                }) { Text(if (busy) "Connecting…" else "Test & Connect") }
+                                }) { Text(if (busy) "Loading provider…" else "Connect & Load") }
                                 OutlinedButton(onClick = { server = "https://"; username = ""; password = ""; result = null }) { Text("Clear") }
                             }
-                            result?.let { Text(it, color = if (connected) Color(0xFF70D6A0) else Color(0xFFFF8A92), fontWeight = FontWeight.Medium) }
-                            Text("Credentials are only used for this connection test in this first setup step.", color = Color.Gray, fontSize = 12.sp)
+                            result?.let { Text(it, color = if (connected) Color(0xFF70D6A0) else Color(0xFFFF8A92)) }
                         }
                     }
-                    "Home" -> Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text(if (connected) "Provider connected" else "Welcome to Freedom IPTV", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                            Text(if (connected) "Xtream authentication succeeded. Channel loading is the next milestone." else "Connect an IPTV provider to get started.", color = Color.LightGray)
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Button(onClick = { page = "Add Provider" }) { Text(if (connected) "Manage Provider" else "Add Provider") }
-                                OutlinedButton(onClick = { page = "Freedom Link" }) { Text("Pair Phone") }
+                    "Live TV", "Search" -> {
+                        if (!connected || channels.isEmpty()) EmptyState("Connect a provider to load channels.") { page = "Add Provider" }
+                        else Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedTextField(search, { search = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Search ${channels.size} channels") }, singleLine = true)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FilterChip(selected = selectedCategory == "all", onClick = { selectedCategory = "all" }, label = { Text("All") })
+                                categories.take(8).forEach { cat -> FilterChip(selected = selectedCategory == cat.id, onClick = { selectedCategory = cat.id }, label = { Text(cat.name, maxLines = 1) }) }
+                            }
+                            Text("${filtered.size} channels", color = Color.LightGray)
+                            LazyColumn(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                items(filtered, key = { it.id }) { channel ->
+                                    Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth().clickable { currentChannel = channel; page = "Player" }) {
+                                        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Text(channel.name, color = Color.White, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                                            Text("▶", color = FreedomRed)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
-                    else -> Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+                    "Home" -> Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text(if (connected) "Provider authenticated" else "Connect a provider first", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                            Text("This screen is queued for the next implementation milestone.", color = Color.LightGray)
-                            Button(onClick = { page = "Add Provider" }) { Text("Add Provider") }
+                            Text(if (connected) "Provider connected" else "Welcome to Freedom IPTV", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                            Text(if (connected) "${channels.size} channels loaded. Guide engine is next." else "Connect your IPTV provider to get started.", color = Color.LightGray)
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Button(onClick = { page = "Add Provider" }) { Text(if (connected) "Manage Provider" else "Add Provider") }
+                                OutlinedButton(onClick = { page = "Live TV" }) { Text("Browse Channels") }
+                            }
                         }
                     }
+                    "Player" -> Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(currentChannel?.name ?: "Channel", color = Color.White, fontSize = 22.sp)
+                            Text("Channel selected. Media3 playback screen is the next milestone.", color = Color.LightGray)
+                            Button(onClick = { page = "Live TV" }) { Text("Back to channels") }
+                        }
+                    }
+                    "Guide" -> EmptyState("EPG database and XMLTV import are next. Provider EPG endpoints are being added.") { page = "Live TV" }
+                    else -> EmptyState("This section is queued for implementation.") { page = "Live TV" }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun EmptyState(message: String, action: () -> Unit) {
+    Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(message, color = Color.LightGray)
+            Button(onClick = action) { Text("Continue") }
         }
     }
 }
