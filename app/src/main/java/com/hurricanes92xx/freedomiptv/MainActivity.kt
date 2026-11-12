@@ -25,6 +25,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -194,7 +199,13 @@ private fun FreedomApp() {
                                 scope.launch {
                                     try {
                                         val creds = credentials ?: error("Connect first.")
-                                        guide = channels.take(60).associate { channel -> channel.id to api.getShortEpg(creds, channel.id, 8) }
+                                        val epgChannels = channels.take(60)
+                                        val limiter = Semaphore(6)
+                                        guide = coroutineScope {
+                                            epgChannels.map { channel ->
+                                                async { limiter.withPermit { channel.id to api.getShortEpg(creds, channel.id, 8) } }
+                                            }.awaitAll().toMap()
+                                        }
                                         guideMessage = "Guide loaded."
                                     } catch (e: Exception) {
                                         guideMessage = e.message ?: "Guide failed."
