@@ -177,9 +177,9 @@ private fun FreedomApp() {
                         if (!connected || channels.isEmpty()) EmptyState("Connect a provider to load channels.") { page = "Add Provider" }
                         else Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             OutlinedTextField(search, { search = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Search ${channels.size} channels") }, singleLine = true)
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                FilterChip(selected = selectedCategory == "all", onClick = { selectedCategory = "all" }, label = { Text("All") })
-                                categories.forEach { cat ->
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                item { FilterChip(selected = selectedCategory == "all", onClick = { selectedCategory = "all" }, label = { Text("All") }) }
+                                items(categories, key = { it.id }) { cat ->
                                     FilterChip(
                                         selected = selectedCategory == cat.id,
                                         onClick = { selectedCategory = cat.id },
