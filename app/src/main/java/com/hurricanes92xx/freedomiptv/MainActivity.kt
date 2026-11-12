@@ -40,6 +40,9 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.first
 import android.content.Context
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.hurricanes92xx.freedomiptv.provider.m3u.M3uCatalogImporter
@@ -446,10 +449,21 @@ private fun FreedomApp() {
                                     Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.fillMaxWidth()) {
                                         Column(Modifier.padding(12.dp)) {
                                             Text(channel.name, color = FreedomRed, fontWeight = FontWeight.Bold)
-                                            guide[channel.id].orEmpty().forEach { programme ->
-                                                Text(programme.title, color = Color.White)
+                                            val programmes = guide[channel.id].orEmpty()
+                                            val now = System.currentTimeMillis() / 1000
+                                            val current = programmes.firstOrNull { it.startEpochSeconds <= now && it.endEpochSeconds > now }
+                                            val next = programmes.firstOrNull { it.startEpochSeconds > now }
+                                            val clock = SimpleDateFormat("h:mm a", Locale.getDefault())
+                                            current?.let { programme ->
+                                                Text("NOW · ${programme.title}", color = Color.White, fontWeight = FontWeight.Bold)
+                                                Text("${clock.format(Date(programme.startEpochSeconds * 1000))} – ${clock.format(Date(programme.endEpochSeconds * 1000))}", color = FreedomRed)
                                                 if (programme.description.isNotBlank()) Text(programme.description, color = Color.LightGray, maxLines = 2)
                                             }
+                                            next?.let { programme ->
+                                                Text("NEXT · ${programme.title}", color = Color.White)
+                                                Text("${clock.format(Date(programme.startEpochSeconds * 1000))} – ${clock.format(Date(programme.endEpochSeconds * 1000))}", color = Color.LightGray)
+                                            }
+                                            if (current == null && next == null) Text("No current schedule data", color = Color.LightGray)
                                         }
                                     }
                                 }
