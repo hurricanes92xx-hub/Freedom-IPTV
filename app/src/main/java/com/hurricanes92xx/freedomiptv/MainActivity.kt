@@ -224,7 +224,8 @@ private fun FreedomApp() {
                     }
                     "Playlist" -> {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Button(enabled = !playlistBusy, onClick = { playlistPicker.launch(arrayOf("audio/x-mpegurl", "application/vnd.apple.mpegurl", "text/plain")) }) { Text(if (playlistBusy) "Importing…" else "Import M3U") }
+                            Button(enabled = !playlistBusy, onClick = { playlistPicker.launch(arrayOf("audio/x-mpegurl", "application/vnd.apple.mpegurl", "text/plain")) }) { Text(if (playlistBusy) "Importing…" else "Import / Replace M3U") }
+                            TextButton(enabled = !playlistBusy && playlistChannels.isNotEmpty(), onClick = { playlistChannels = emptyList(); scope.launch { context.favoriteStore.edit { it[PLAYLIST_DATA] = emptySet() } }; playlistMessage = "Playlist removed." }) { Text("Remove", color = FreedomRed) }
                             Text(playlistMessage, color = Color.LightGray)
                         }
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
