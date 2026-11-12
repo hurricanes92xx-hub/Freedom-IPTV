@@ -59,7 +59,7 @@ class XtreamVodApi(private val client:OkHttpClient=OkHttpClient.Builder().connec
    for(i in 0 until arr.length()) {
     val e=arr.optJSONObject(i)?:continue
     val id=e.opt("id")?.toString()?.takeIf{it.isNotBlank()}?:continue
-    eps.add(XtreamEpisode(id,e.optString("title","Episode ${e.optString("episode_num",i+1)}"),e.opt("episode_num")?.toString()?: (i+1).toString(),season,e.optString("container_extension").takeIf{it.isNotBlank()},e.optJSONObject("info")?.optString("plot")?.takeIf{it.isNotBlank()}))
+    eps.add(XtreamEpisode(id,e.optString("title","Episode ${e.optString("episode_num",(i+1).toString())}"),e.opt("episode_num")?.toString()?: (i+1).toString(),season,e.optString("container_extension").takeIf{it.isNotBlank()},e.optJSONObject("info")?.optString("plot")?.takeIf{it.isNotBlank()}))
    }
    result.add(XtreamSeason(season,seasonNames[season]?: "Season $season",eps.sortedBy { it.episodeNumber.toIntOrNull()?:0 }))
   }
