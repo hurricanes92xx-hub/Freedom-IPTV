@@ -448,7 +448,7 @@ private fun FreedomApp() {
                                         }
                                     }
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        items(listOf("All", "Live", "Upcoming", "Final")) { status -> FilterChip(selected = gameStatusFilter == status, onClick = { gameStatusFilter = status }, label = { Text(status) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = FreedomRed, selectedLabelColor = Color.White)) }
+                                        listOf("All", "Live", "Upcoming", "Final").forEach { status -> FilterChip(selected = gameStatusFilter == status, onClick = { gameStatusFilter = status }, label = { Text(status) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = FreedomRed, selectedLabelColor = Color.White)) }
                                     }
                                     val filteredGames = scheduledGames.filter { game -> when(gameStatusFilter) { "Live" -> game.state == GameState.LIVE; "Upcoming" -> game.state == GameState.SCHEDULED; "Final" -> game.state == GameState.FINAL; else -> true } }
                                     if(scheduleLoading) Text("Loading schedule…", color = Color.LightGray)
