@@ -150,6 +150,24 @@ private fun FreedomApp() {
                                     }
                                 }) { Text(if (busy) "Loading provider…" else "Connect & Load") }
                                 OutlinedButton(onClick = { server = "https://"; username = ""; password = ""; result = null }) { Text("Clear") }
+                                OutlinedButton(enabled = !busy, onClick = {
+                                    scope.launch {
+                                        context.favoriteStore.edit { prefs ->
+                                            prefs.remove(PROVIDER_SERVER)
+                                            prefs.remove(PROVIDER_USERNAME)
+                                            prefs.remove(PROVIDER_PASSWORD)
+                                        }
+                                        mediaPlayer.exoPlayer.stop()
+                                        currentChannel = null
+                                        credentials = null
+                                        channels = emptyList()
+                                        categories = emptyList()
+                                        guide = emptyMap()
+                                        connected = false
+                                        server = "https://"; username = ""; password = ""
+                                        result = "Provider disconnected and saved credentials removed."
+                                    }
+                                }) { Text("Disconnect") }
                             }
                             result?.let { Text(it, color = if (connected) Color(0xFF70D6A0) else Color(0xFFFF8A92)) }
                         }
