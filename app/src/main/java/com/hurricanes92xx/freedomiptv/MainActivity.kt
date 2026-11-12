@@ -53,6 +53,9 @@ private fun FreedomApp() {
     var selectedCategory by remember { mutableStateOf("all") }
     var search by remember { mutableStateOf("") }
     var currentChannel by remember { mutableStateOf<XtreamLiveChannel?>(null) }
+    var guideBusy by remember { mutableStateOf(false) }
+    var guideMessage by remember { mutableStateOf("Connect a provider to load the guide.") }
+    var guide by remember { mutableStateOf<Map<String, List<com.hurricanes92xx.freedomiptv.provider.xtream.XtreamProgramme>>>(emptyMap()) }
     val scope = rememberCoroutineScope()
     val api = remember { XtreamApi() }
     val context = LocalContext.current
@@ -68,8 +71,10 @@ private fun FreedomApp() {
                 Text("🦅 FREEDOM", color = Color.White, fontSize = 23.sp, fontWeight = FontWeight.Black)
                 Text("IPTV", color = FreedomRed, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(20.dp))
-                listOf("Home", "Live TV", "Guide", "Sports", "Favorites", "Search", "Settings", "Add Provider").forEach {
-                    NavigationRailItem(selected = page == it, onClick = { page = it }, icon = {}, label = { Text(it) })
+                listOf("Home", "Live TV", "Guide", "Sports", "Favorites", "Search", "Settings", "Add Provider").forEach { item ->
+                    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(if (page == item) FreedomRed.copy(alpha = 0.18f) else Color.Transparent).clickable { page = item }.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(item, color = if (page == item) FreedomRed else Color.LightGray, fontWeight = if (page == item) FontWeight.Bold else FontWeight.Normal)
+                    }
                 }
             }
             Column(Modifier.fillMaxSize().padding(30.dp)) {
