@@ -20,10 +20,10 @@ class SportsScheduleRepository(
     private val scheduleCache = java.util.concurrent.ConcurrentHashMap<String, CachedSchedule>()
     private val cacheTtlMillis = 90_000L
 
-    suspend fun schedule(competition: Competition, fromUtcMillis: Long, toUtcMillis: Long): List<Game> = coroutineScope {
+    suspend fun schedule(competition: Competition, fromUtcMillis: Long, toUtcMillis: Long, bypassCache: Boolean = false): List<Game> = coroutineScope {
         if (toUtcMillis < fromUtcMillis) return@coroutineScope emptyList()
         val cacheKey = "${competition.id}:$fromUtcMillis:$toUtcMillis"
-        scheduleCache[cacheKey]?.let { cached ->
+        if (!bypassCache) scheduleCache[cacheKey]?.let { cached ->
             if (System.currentTimeMillis() - cached.savedAt < cacheTtlMillis) return@coroutineScope cached.games
         }
         val primary = async { runCatching { espn.schedule(competition, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList()) }
@@ -47,7 +47,7 @@ class SportsScheduleRepository(
         val merged = (soccerBase + football).distinctBy { game ->
             "${game.competitionId}:${game.startUtcMillis / 60000}:${game.home.name.lowercase().replace(Regex("[^a-z0-9]"), "")}:${game.away.name.lowercase().replace(Regex("[^a-z0-9]"), "")}"
         }.sortedBy { it.startUtcMillis }
-        scheduleCache[cacheKey] = CachedSchedule(System.currentTimeMillis(), merged)
+        if (!bypassCache) scheduleCache[cacheKey] = CachedSchedule(System.currentTimeMillis(), merged)
         if (scheduleCache.size > 120) {
             val now = System.currentTimeMillis()
             scheduleCache.entries.removeIf { now - it.value.savedAt >= cacheTtlMillis }
@@ -64,7 +64,7 @@ class SportsScheduleRepository(
         val espnLive = runCatching { espn.liveScores(competition) }.getOrDefault(emptyList())
         if (espnLive.isNotEmpty()) return espnLive
         val now = System.currentTimeMillis()
-        return schedule(competition, now - 6 * 60 * 60_000L, now + 2 * 60 * 60_000L).filter { it.state == GameState.LIVE }
+        return schedule(competition, now - 6 * 60 * 60_000L, now + 2 * 60 * 60_000L, bypassCache = true).filter { it.state == GameState.LIVE }
     }
 }
 
