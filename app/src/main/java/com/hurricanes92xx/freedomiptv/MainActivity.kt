@@ -1,4 +1,8 @@
 package com.hurricanes92xx.freedomiptv
+import com.hurricanes92xx.freedomiptv.sports.model.GameState
+import com.hurricanes92xx.freedomiptv.sports.model.Game
+import com.hurricanes92xx.freedomiptv.sports.model.Competition
+import com.hurricanes92xx.freedomiptv.sports.data.EspnScheduleProvider
 
 import android.os.Bundle
 import android.net.Uri
@@ -340,6 +344,16 @@ private fun FreedomApp() {
                         var sportFilter by remember { mutableStateOf("All") }
                         val filterTerms = mapOf("Football" to Regex("football|nfl|college football", RegexOption.IGNORE_CASE), "Basketball" to Regex("basketball|nba|wnba", RegexOption.IGNORE_CASE), "Baseball" to Regex("baseball|mlb", RegexOption.IGNORE_CASE), "Hockey" to Regex("hockey|nhl", RegexOption.IGNORE_CASE), "Soccer" to Regex("soccer|mls|epl|champions league", RegexOption.IGNORE_CASE), "Volleyball" to Regex("volleyball", RegexOption.IGNORE_CASE), "Combat" to Regex("ufc|mma|boxing", RegexOption.IGNORE_CASE), "Wrestling" to Regex("wwe|aew|tna|wrestling", RegexOption.IGNORE_CASE))
                         val visibleSports = sports.filter { channel -> sportFilter == "All" || (channel.name + " " + (categoryNames[channel.categoryId] ?: "")).contains(filterTerms[sportFilter] ?: Regex("(?!)")) }
+                        val scheduleProvider = remember { EspnScheduleProvider() }
+                        var selectedCompetition by remember { mutableStateOf(Competition.NFL) }
+                        var scheduledGames by remember { mutableStateOf<List<Game>>(emptyList()) }
+                        var scheduleLoading by remember { mutableStateOf(false) }
+                        LaunchedEffect(selectedCompetition) {
+                            scheduleLoading = true
+                            val now = System.currentTimeMillis()
+                            scheduledGames = runCatching { scheduleProvider.schedule(selectedCompetition, now - 2 * 60 * 60 * 1000L, now + 7 * 24 * 60 * 60 * 1000L) }.getOrDefault(emptyList())
+                            scheduleLoading = false
+                        }
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(bottom = 28.dp)) {
                             item {
                                 Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF151D2B)), shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
@@ -355,6 +369,32 @@ private fun FreedomApp() {
                                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                                 Surface(color = FreedomRed, shape = RoundedCornerShape(8.dp)) { Text(" ${sports.size} SPORTS CHANNELS ", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp)) }
                                                 Surface(color = Color(0xFF273348), shape = RoundedCornerShape(8.dp)) { Text(if (connected) " PROVIDER CONNECTED " else " CONNECT TO WATCH ", color = Color(0xFFD8E2F0), fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp)) }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            item {
+                                Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("SCHEDULE & SCORES", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                                        Spacer(Modifier.weight(1f)); Text(if(scheduleLoading) "LOADING" else "ESPN", color = Color(0xFF9BA8BA), fontSize = 11.sp)
+                                    }
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        items(listOf(Competition.NFL, Competition.NBA, Competition.MLB, Competition.NHL, Competition.WNBA, Competition.MLS, Competition.NCAAF_FBS, Competition.NCAAF_FCS)) { comp ->
+                                            FilterChip(selected = selectedCompetition == comp, onClick = { selectedCompetition = comp }, label = { Text(comp.label) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = FreedomRed, selectedLabelColor = Color.White))
+                                        }
+                                    }
+                                    if(scheduleLoading) Text("Loading schedule…", color = Color.LightGray)
+                                    else if(scheduledGames.isEmpty()) Text("No events available in the next 7 days.", color = Color.LightGray)
+                                    else scheduledGames.take(12).forEach { game ->
+                                        Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+                                            Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                Column(Modifier.weight(1f)) {
+                                                    Text("${game.away.name} @ ${game.home.name}", color = Color.White, fontWeight = FontWeight.Bold)
+                                                    Text(SimpleDateFormat("EEE, MMM d • h:mm a", Locale.getDefault()).format(Date(game.startUtcMillis)), color = Color.LightGray, fontSize = 12.sp)
+                                                }
+                                                Text(when(game.state) { GameState.LIVE -> "LIVE ${game.awayScore ?: 0}-${game.homeScore ?: 0}"; GameState.FINAL -> "FINAL ${game.awayScore ?: 0}-${game.homeScore ?: 0}"; else -> "UPCOMING" }, color = if(game.state == GameState.LIVE) FreedomRed else Color.LightGray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                             }
                                         }
                                     }
