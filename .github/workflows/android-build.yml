@@ -23,6 +23,58 @@ jobs:
           accept-android-sdk-licenses: true
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v5
+      - name: CFBD API smoke test (FBS/FCS)
+        env:
+          CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
+        run: |
+          python - <<'PY'
+          import datetime, json, os, urllib.parse, urllib.request
+
+          key = os.environ.get("CFBD_API_KEY", "").strip()
+          if not key:
+              raise SystemExit("CFBD_API_KEY repository secret is missing.")
+          headers = {"Authorization": "Bearer " + key, "Accept": "application/json"}
+
+          def get(path):
+              req = urllib.request.Request("https://api.collegefootballdata.com/" + path, headers=headers)
+              with urllib.request.urlopen(req, timeout=15) as response:
+                  if response.status != 200:
+                      raise RuntimeError(f"CFBD returned HTTP {response.status} for {path}")
+                  return json.loads(response.read())
+
+          today = datetime.datetime.now(datetime.timezone.utc).date()
+          start, end = today - datetime.timedelta(days=1), today + datetime.timedelta(days=14)
+          years = range(start.year, end.year + 1)
+          selected = set()
+          for year in years:
+              for entry in get(f"calendar?year={year}"):
+                  try:
+                      ws = datetime.datetime.fromisoformat(entry["startDate"].replace("Z", "+00:00")).date()
+                      we = datetime.datetime.fromisoformat(entry["endDate"].replace("Z", "+00:00")).date()
+                  except (KeyError, ValueError):
+                      continue
+                  if ws <= end and we >= start:
+                      selected.add((year, int(entry["week"]), entry["seasonType"]))
+
+          totals = {"fbs": 0, "fcs": 0}
+          for year, week, season_type in sorted(selected):
+              base = f"games?year={year}&week={week}&seasonType={urllib.parse.quote(season_type)}"
+              for division in ("fbs", "fcs"):
+                  games = get(base + "&classification=" + division)
+                  if not isinstance(games, list):
+                      raise RuntimeError(f"CFBD {division} response was not a list")
+                  for game in games:
+                      hc = str(game.get("homeClassification", "")).lower()
+                      ac = str(game.get("awayClassification", "")).lower()
+                      if division == "fbs" and "fbs" not in (hc, ac):
+                          raise RuntimeError("FBS endpoint returned a game with no FBS team classification")
+                      if division == "fcs" and "fcs" not in (hc, ac):
+                          raise RuntimeError("FCS endpoint returned a game with no FCS team classification")
+                  totals[division] += len(games)
+          print(f"CFBD auth + calendar + division endpoints OK; next-14-day window: FBS={totals['fbs']} FCS={totals['fcs']} games.")
+          if not selected:
+              print("No calendar weeks overlap this window (likely offseason); endpoint authentication still verified.")
+          PY
       - name: Build debug APK
         env:
           CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
