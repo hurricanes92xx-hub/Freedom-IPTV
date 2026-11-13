@@ -439,7 +439,7 @@ private fun FreedomApp() {
                                     }
                                     if (combatLoading) Text("Loading fight calendar…", color = Color.LightGray)
                                     else if (combatEvents.isEmpty()) Text("No fight events listed for this date.", color = Color.LightGray)
-                                    else combatEvents.take(12).forEach { event ->
+                                    else combatEvents.forEach { event ->
                                         Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
                                             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                                 Box(Modifier.size(76.dp, 64.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF202B3D)), contentAlignment = Alignment.Center) {
