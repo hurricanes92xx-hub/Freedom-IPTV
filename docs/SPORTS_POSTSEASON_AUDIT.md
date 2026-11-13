@@ -1,6 +1,6 @@
 # Sports Postseason Coverage Audit
 
-Updated: 2026-11-13 (bracket ingestion implemented; live payload validation pending)
+Updated: 2026-11-13 (NCAA bracket round mapping and baseball route verified against 2025 upstream data)
 
 This is a provider/code audit, not a claim that every future event has been live-tested.
 
@@ -16,25 +16,29 @@ This is a provider/code audit, not a claim that every future event has been live
 
 ## NCAA
 
-| Competition | Current schedule source | Tournament limitation |
+| Competition | Current schedule source | Tournament handling / caveat |
 |---|---|---|
 | FBS | ESPN + CFBD | CFP/bowls depend on ESPN season/event metadata; CFBD seasonType=both |
 | FCS | ESPN | Bracket rounds depend on ESPN event metadata |
-| Men's basketball D1 | ESPN + NCAA scoreboard + NCAA bracket | ESPN labels plus bracket matchups/rounds; payload validation pending |
-| Men's basketball D2/D3 | NCAA scoreboard + NCAA bracket | Bracket matchups/rounds; payload validation pending |
-| Women's basketball D1 | ESPN + NCAA scoreboard + NCAA bracket | ESPN labels plus bracket matchups/rounds; payload validation pending |
-| Women's basketball D2/D3 | NCAA scoreboard + NCAA bracket | Bracket matchups/rounds; payload validation pending |
-| Women's volleyball | ESPN + NCAA scoreboard + NCAA bracket | Bracket matchups/rounds; payload validation pending |
-| Baseball / CWS | ESPN + NCAA scoreboard + NCAA bracket | Bracket matchups/rounds; payload validation pending |
-| Women's gymnastics | ESPN + NCAA scoreboard + NCAA bracket | Bracket route wired; payload validation pending |
+| Men's basketball D1 | ESPN + NCAA scoreboard + NCAA bracket | Bracket position IDs mapped First Four through Championship |
+| Men's basketball D2/D3 | NCAA scoreboard + NCAA bracket | 2025 bracket positions mapped through First Round, Second Round, Regional Semifinal/Final, National Semifinal, Championship |
+| Women's basketball D1 | ESPN + NCAA scoreboard + NCAA bracket | Bracket position IDs mapped First Four through Championship |
+| Women's basketball D2/D3 | NCAA scoreboard + NCAA bracket | 2025 bracket positions mapped through First Round, Second Round, Regional Semifinal/Final, National Semifinal, Championship |
+| Women's volleyball | ESPN + NCAA scoreboard + NCAA bracket | 2025 position IDs mapped First Round through Championship |
+| Baseball / CWS | ESPN + NCAA scoreboard + NCAA bracket | Correct HenryGD route is `baseball/d1`; 2025 positions map Regional, Super Regional, College World Series, CWS Championship |
+| Women's gymnastics | ESPN + NCAA scoreboard | No NCAA bracket route is wired; scoreboard/event metadata only |
 
-## Important implementation facts
+## Implementation and validation notes
 
-- The NCAA HenryGD adapter requests dated scoreboard endpoints and now also queries `/brackets/{sport}/{division}/{year}` for supported tournament sports (including women's gymnastics).
-- The HenryGD NCAA API documents a dedicated `/brackets/{sport}/{division}/{year}` endpoint with tournament bracket/live-score data. Bracket parsing is implemented recursively for common team/date/round fields; representative upstream payload validation and ID deduplication still need attention.
-- ESPN labels postseason games using season type and extracts round hints from event names/competition notes when those strings exist. Generic postseason labels are retained if a specific round is absent.
+- HenryGD NCAA bracket endpoint: `/brackets/{sport}/{division}/{year}`; parser consumes `championships[].games[]` directly, including contest IDs, bracket position IDs, epoch start times, teams, scores, and status.
+- Validated 2025 upstream payloads for D1 men's/women's basketball, D2/D3 men's/women's basketball, women's volleyball, and D1 baseball. These checks establish endpoint shape and round-position mapping for those seasons—not future availability or completeness.
+- NCAA women's gymnastics is intentionally not listed as bracket-backed. Its schedule currently relies on ESPN and NCAA dated scoreboard data.
+- Bracket results are merged with dated scoreboard results and deduplicated by game ID.
+- ESPN labels postseason games using season type and extracts round hints from event names/competition notes when those strings exist. Generic postseason labels remain when specific rounds are unavailable.
 - A green CI build confirms compilation/tests, not upstream feed completeness or live postseason availability.
 
-## Next engineering step
+## Remaining postseason work
 
-Add a bracket-backed NCAA provider for tournament competitions, normalize bracket rounds into `Game.postseasonRound`, merge/deduplicate with scoreboard results, and validate representative D1 basketball, women's volleyball, baseball/CWS, and women's gymnastics bracket payloads before claiming complete postseason coverage.
+1. Validate 2025 NCAA FCS playoff and FBS CFP/bowl event labeling against real ESPN event payloads.
+2. Validate NCAA baseball/CWS and gymnastics schedule windows against the dated scoreboard feed (bracket payloads alone are not a complete daily schedule).
+3. Keep monitoring provider changes and confirm upcoming-season data when it becomes available.
