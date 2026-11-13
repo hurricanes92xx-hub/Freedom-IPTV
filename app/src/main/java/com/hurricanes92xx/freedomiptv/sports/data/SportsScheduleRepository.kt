@@ -20,6 +20,11 @@ class SportsScheduleRepository(
     private data class CachedSchedule(val savedAt: Long, val games: List<Game>)
     private val scheduleCache = java.util.concurrent.ConcurrentHashMap<String, CachedSchedule>()
     private val cacheTtlMillis = 90_000L
+    private val mlb = MlbStatsApiProvider()
+    private val nhl = NhLWebApiProvider()
+    private val cfbd = CfbdScheduleProvider(apiKey = "r9AL0zagSt7NFDttDhrm7g/yOLqur8b6ktgGbO+VRT1eY2HFVGwr04JMiBYwsrjK")
+    private val sportscore = SportscoreScheduleProvider()
+    private val boxerbook = BoxerbookScheduleProvider()
 
     suspend fun schedule(competition: Competition, fromUtcMillis: Long, toUtcMillis: Long, bypassCache: Boolean = false): List<Game> = coroutineScope {
         if (toUtcMillis < fromUtcMillis) return@coroutineScope emptyList()
@@ -45,7 +50,16 @@ class SportsScheduleRepository(
                 } }.awaitAll().flatten() }
             }
         } else emptyList()
-        val soccerBase = espnGames + ncaaGames + secondary
+        // Dedicated free league APIs supplement ESPN's broad scoreboard coverage.
+        val leagueSupplement = when (competition) {
+            Competition.MLB -> runCatching { mlb.schedule(fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
+            Competition.NHL -> runCatching { nhl.schedule(fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
+            Competition.NCAAF_FBS -> runCatching { cfbd.schedule(fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
+            Competition.EPL, Competition.UCL, Competition.MLS -> runCatching { sportscore.schedule(competition, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
+            Competition.BOXING -> runCatching { boxerbook.schedule(fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
+            else -> emptyList()
+        }
+        val soccerBase = espnGames + ncaaGames + secondary + leagueSupplement
         // API-Football supplements partial ESPN soccer dates; dedupe merged games below.
         val football = if (competition.sport == Sport.SOCCER) {
             runCatching { apiFootball.schedule(competition, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
