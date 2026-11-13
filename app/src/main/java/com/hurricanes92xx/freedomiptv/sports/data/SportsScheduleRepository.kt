@@ -52,7 +52,7 @@ class SportsScheduleRepository(
         val espnGames = primary.await()
         val ncaaGames = college.await()
         val days = generateSequence(Instant.ofEpochMilli(fromUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()) { it.plusDays(1) }
-            .takeWhile { !it.isAfter(Instant.ofEpochMilli(toUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()) }.take(15).toList()
+            .takeWhile { !it.isAfter(Instant.ofEpochMilli(toUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()) }.toList()
         // Combat feeds are routinely absent from ESPN; query the supplement there even with primary results.
         val secondary = if ((espnGames.isEmpty() && ncaaGames.isEmpty()) || competition.sport == Sport.COMBAT) {
             coroutineScope {
