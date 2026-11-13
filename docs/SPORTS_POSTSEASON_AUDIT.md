@@ -1,6 +1,6 @@
 # Sports Postseason Coverage Audit
 
-Updated: 2026-11-13 (NCAA bracket mapping and gymnastics postseason source audit)
+Updated: 2026-11-13 (NCAA bracket mapping and Road to Nationals source inspection)
 
 This is a provider/code audit, not a claim that every future event has been live-tested.
 
@@ -40,5 +40,5 @@ This is a provider/code audit, not a claim that every future event has been live
 ## Remaining postseason work
 
 1. Validate 2025 NCAA FCS playoff and FBS CFP/bowl event labeling against real ESPN event payloads.
-2. Fix/replace NCAA women's gymnastics scoreboard ingestion; verify 2026 regionals and championship sessions are surfaced as actual app fixtures (not merely external event calendar data).\n3. Validate NCAA baseball/CWS schedule windows against the dated scoreboard feed (bracket payloads alone are not a complete daily schedule).
+2. Integrate NCAA women's gymnastics meet/session data. RTN's 2026 schedule page is confirmed, but find a public structured endpoint (or permitted reliable parsing path) before wiring it; then verify regionals and championship sessions as actual app fixtures.\n3. Validate NCAA baseball/CWS schedule windows against the dated scoreboard feed (bracket payloads alone are not a complete daily schedule).
 4. Keep monitoring provider changes and confirm upcoming-season data when it becomes available.
