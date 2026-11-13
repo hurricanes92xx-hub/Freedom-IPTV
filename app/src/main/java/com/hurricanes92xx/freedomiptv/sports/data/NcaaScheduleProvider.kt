@@ -50,7 +50,9 @@ class NcaaScheduleProvider(
     val status=game.optString("statusCodeDisplay").ifBlank{game.optString("gameState")}.lowercase()
     val state=when{status.contains("live")||status=="p"||status=="in progress"->GameState.LIVE;status.contains("final")||status=="f"||status=="complete"->GameState.FINAL;else->GameState.SCHEDULED}
     val id=game.optString("contestId").ifBlank{game.optString("gameID").ifBlank{c.id+"_"+millis+"_"+homeName+"_"+awayName}}
-    val round=game.optString("roundName").ifBlank{game.optString("round").ifBlank{"NCAA Tournament"}}
+    val position=game.optInt("bracketPositionId",0)
+    val inferredRound=when(position/100){1->"First Round";2->"Second Round";3->"Sweet 16";4->"Elite Eight";5->"Final Four";6->"Championship";else->""}
+    val round=game.optString("roundName").ifBlank{game.optString("round").ifBlank{inferredRound.ifBlank{"NCAA Tournament"}}}
     out.add(Game(id,c.id,team(home,homeName),team(away,awayName),millis,state,home.optInt("score").takeIf{home.has("score")},away.optInt("score").takeIf{away.has("score")},game.optString("currentPeriod").ifBlank{null},game.optString("contestClock").ifBlank{null},null,round))
    }
   }
