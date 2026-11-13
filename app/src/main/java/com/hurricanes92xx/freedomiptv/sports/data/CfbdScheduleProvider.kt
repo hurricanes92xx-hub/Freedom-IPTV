@@ -1,4 +1,4 @@
-package com.hurricanes92.freedomiptv.sports.data
+package com.hurricanes92xx.freedomiptv.sports.data
 import com.hurricanes92xx.freedomiptv.sports.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
