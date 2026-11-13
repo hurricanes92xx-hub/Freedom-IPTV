@@ -24,6 +24,7 @@ class SportsScheduleRepository(
     private val nhl = NhLWebApiProvider()
     private val cfbd = CfbdScheduleProvider(apiKey = com.hurricanes92.freedomiptv.BuildConfig.CFBD_API_KEY)
     private val combat = CombatScheduleProvider()
+    private val roadToNationalsGymnastics = RoadToNationalsGymnasticsProvider()
 
     suspend fun schedule(competition: Competition, fromUtcMillis: Long, toUtcMillis: Long, bypassCache: Boolean = false): List<Game> = coroutineScope {
         if (toUtcMillis < fromUtcMillis) return@coroutineScope emptyList()
@@ -68,7 +69,7 @@ class SportsScheduleRepository(
             Competition.NCAAF_FBS -> runCatching { cfbd.schedule(fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
             else -> emptyList()
         }
-        val soccerBase = espnGames + ncaaGames + secondary + leagueSupplement
+        val soccerBase = espnGames + ncaaGames + rtnGymnastics + secondary + leagueSupplement
         // API-Football supplements partial ESPN soccer dates; dedupe merged games below.
         val football = if (competition.sport == Sport.SOCCER) {
             runCatching { apiFootball.schedule(competition, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
