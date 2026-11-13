@@ -87,10 +87,15 @@ class EspnScheduleProvider(
                     val competitionNotes = comp.optJSONArray("notes")?.let { notes ->
                         (0 until notes.length()).mapNotNull { notes.optJSONObject(it)?.optString("headline")?.takeIf(String::isNotBlank) }.joinToString(" ")
                     }.orEmpty()
-                    val roundText = listOf(eventName, competitionNotes, seasonName).firstOrNull { text ->
+                    val competitionType = comp.optJSONObject("type")?.let { type ->
+                        listOf(type.optString("abbreviation"), type.optString("text"), type.optString("name"))
+                            .filter(String::isNotBlank).distinct().joinToString(" ")
+                    }.orEmpty()
+                    val roundSources = listOf(eventName, competitionNotes, competitionType)
+                    val roundText = (roundSources + seasonName).firstOrNull { text ->
                         Regex("(?i)(first four|sweet sixteen|elite eight|final four|quarterfinal|semifinal|semi-final|championship|\\bowl\\b|round\\s*[0-9ivx]+|regional|super regional)").containsMatchIn(text)
                     }
-                    val playoffRound = listOf(eventName, competitionNotes).firstOrNull { text ->
+                    val playoffRound = roundSources.firstOrNull { text ->
                         Regex("(?i)(first round|wild card|divisional|conference championship|quarterfinal|semifinal|semi-final|championship|national championship|round\\s*[0-9ivx]+|regional|super regional)").containsMatchIn(text)
                     }
                     val round = if (postseason) (playoffRound ?: roundText)?.trim()?.take(80) ?: seasonName.ifBlank { "Postseason" } else null
