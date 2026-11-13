@@ -103,14 +103,13 @@ class CfbdScheduleProvider(
                         } else explicitRound.takeIf(String::isNotBlank)
                             ?: if (division == Competition.NCAAF_FCS && seasonType.lowercase() == "postseason") {
                                 when (game.optInt("week", week)) {
-                                    // CFBD postseason calendar uses round weeks 1–6; keep
-                                    // legacy/global week values accepted defensively.
+                                    // CFBD postseason week resets to 1; the 24-team FCS
+                                    // bracket has five rounds (First, Second, QF, SF, title).
                                     1, 15 -> "FCS Playoffs • First Round"
                                     2, 16 -> "FCS Playoffs • Second Round"
-                                    3, 17 -> "FCS Playoffs • Third Round"
-                                    4, 18 -> "FCS Playoffs • Quarterfinals"
-                                    5, 19 -> "FCS Playoffs • Semifinals"
-                                    6, 20 -> "FCS Playoffs • Championship"
+                                    3, 17 -> "FCS Playoffs • Quarterfinals"
+                                    4, 18 -> "FCS Playoffs • Semifinals"
+                                    5, 19 -> "FCS Playoffs • Championship"
                                     else -> "FCS Playoffs"
                                 }
                             } else null
