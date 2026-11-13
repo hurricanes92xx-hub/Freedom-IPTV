@@ -38,6 +38,13 @@ This is a provider/code audit, not a claim that every future event has been live
 - ESPN labels postseason games using season type and extracts round hints from event names/competition notes when those strings exist. Generic postseason labels remain when specific rounds are unavailable.
 - A green CI build confirms compilation/tests, not upstream feed completeness or live postseason availability.
 
+## FBS CFP / bowl payload audit (2026-11-13)
+
+- Live ESPN scoreboard inspection for the 2025 postseason showed events marked `season.type=3` / `slug=post-season`, with `week.number=1` across CFP dates. ESPN's event name is just the matchup and its competition type is generally `STD`; round-specific text is not consistently exposed in scoreboard notes. Therefore ESPN's generic postseason signal alone cannot distinguish First Round, Quarterfinal, Semifinal, and Championship.
+- CFBD's Games schema explicitly exposes `playoff.competition`, `playoff.round` (`first_round`, `quarterfinal`, `semifinal`, `championship`), `playoff.roundName`, and `playoff.bowlName`. The provider already reads this nested object; this pass normalized CFP enum fallback values to user-facing round names and appends the bowl host when available (e.g. `CFP Quarterfinals • Rose Bowl`). Explicit CFBD roundName remains preferred.
+- Ordinary bowl games remain labeled from provider notes/event metadata when available; ESPN's scoreboard may not carry the bowl title in the matchup name. Venue detail remains separately available on the game card.
+- CI build #314 is running for the CFBD label normalization. This is a source-level/real-payload audit; no Android device runtime screenshot test was performed.
+
 ## Remaining postseason work
 
 1. Validate 2025 NCAA FCS playoff and FBS CFP/bowl event labeling against real ESPN event payloads.
