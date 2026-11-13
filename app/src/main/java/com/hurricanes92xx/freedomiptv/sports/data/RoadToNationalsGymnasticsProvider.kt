@@ -76,13 +76,20 @@ class RoadToNationalsGymnasticsProvider(
 
     private fun d1Teams(year: Int): Set<String> = teamCache.getOrPut(year) {
         runCatching {
-            val week = getJson("$base/currentweek/$year").optInt("max")
-            if (week <= 0) return@runCatching emptySet()
-            val rows = getJson("$base/results/$year/$week/0/5").optJSONArray("data") ?: return@runCatching emptySet()
-            buildSet { for (i in 0 until rows.length()) {
-                val row = rows.optJSONObject(i) ?: continue
-                if (row.optString("div") == "Div I") add(decode(row.optString("name")))
-            } }
+            // currentweek may be zero/unavailable after the season ends; walk backward
+            // through recent ranking weeks so offseason schedules still retain D1 filtering.
+            val current = getJson("$base/currentweek/$year").optInt("max").coerceAtLeast(0)
+            val weeks = (current downTo (current - 16).coerceAtLeast(1)).toList() +
+                (16 downTo 1).toList()
+            for (week in weeks.distinct()) {
+                val rows = getJson("$base/results/$year/$week/0/5").optJSONArray("data") ?: continue
+                val names = buildSet { for (i in 0 until rows.length()) {
+                    val row = rows.optJSONObject(i) ?: continue
+                    if (row.optString("div") == "Div I") add(decode(row.optString("name")))
+                } }
+                if (names.isNotEmpty()) return@runCatching names
+            }
+            emptySet()
         }.getOrDefault(emptySet())
     }
 
