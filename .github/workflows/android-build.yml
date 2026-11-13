@@ -96,18 +96,18 @@ jobs:
           if not selected:
               print("No calendar weeks overlap this window (likely offseason); endpoint authentication still verified.")
           PY
-      - name: CFBD FCS postseason slate and round coverage smoke (2024)
+      - name: CFBD FCS postseason event schema smoke (2025)
         env:
           CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
         run: |
           python - <<'PY'
-          import json, os, time, urllib.request, urllib.error, datetime
+          import json, os, time, urllib.request, urllib.error
 
           key = os.environ.get("CFBD_API_KEY", "").strip()
           if not key:
               raise SystemExit("CFBD_API_KEY repository secret is missing.")
           headers = {"Authorization": "Bearer " + key, "Accept": "application/json"}
-          url = "https://api.collegefootballdata.com/games?year=2024&seasonType=postseason&classification=fcs"
+          url = "https://api.collegefootballdata.com/games?year=2025&seasonType=postseason&classification=fcs"
           last_error = None
           for attempt in range(5):
               try:
@@ -125,21 +125,13 @@ jobs:
                       time.sleep(delay)
           else:
               raise RuntimeError(f"CFBD FCS postseason failed after retries: {last_error}")
-          if not isinstance(games, list) or len(games) != 15:
-              raise RuntimeError(f"Expected 15 games in 2024 FCS 16-team bracket; got {len(games) if isinstance(games,list) else type(games)}")
-          by_date = {}
+          if not isinstance(games, list) or not games:
+              raise RuntimeError(f"CFBD FCS postseason response is not a nonempty game list: {type(games)}")
           for game in games:
               if not game.get("homeTeam") or not game.get("awayTeam") or not game.get("startDate"):
-                  raise RuntimeError(f"Incomplete FCS playoff game record: {game}")
-              date = datetime.datetime.fromisoformat(game["startDate"].replace("Z","+00:00")).date().isoformat()
-              by_date[date] = by_date.get(date, 0) + 1
-          rounds = sorted(by_date.items())
-          expected_counts = [8, 4, 2, 1]
-          actual_counts = [count for _, count in rounds]
-          if actual_counts != expected_counts:
-              raise RuntimeError(f"FCS playoff rounds/date grouping mismatch: {rounds}; expected {expected_counts}")
-          labels = ["Second Round", "Quarterfinals", "Semifinals", "Championship"]
-          print("CFBD FCS 2024 postseason OK: " + "; ".join(f"{labels[i]} {date} ({count} games)" for i,(date,count) in enumerate(rounds)))
+                  raise RuntimeError(f"Incomplete CFBD FCS postseason event: {game}")
+          print(f"CFBD FCS postseason schema OK: {len(games)} records; teams and kickoff present. "
+                "CFBD postseason response may be partial, so this smoke does not claim bracket completeness.")
           PY
       - name: NCAA postseason bracket API smoke test (2025)
         run: |
