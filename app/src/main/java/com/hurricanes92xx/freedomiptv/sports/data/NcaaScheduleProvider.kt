@@ -51,7 +51,11 @@ class NcaaScheduleProvider(
     val state=when{status.contains("live")||status=="p"||status=="in progress"->GameState.LIVE;status.contains("final")||status=="f"||status=="complete"->GameState.FINAL;else->GameState.SCHEDULED}
     val id=game.optString("contestId").ifBlank{game.optString("gameID").ifBlank{c.id+"_"+millis+"_"+homeName+"_"+awayName}}
     val position=game.optInt("bracketPositionId",0)
-    val inferredRound=when(position/100){1->"First Round";2->"Second Round";3->if(c==Competition.NCAAM_D1||c==Competition.NCAAW_D1) "Sweet 16" else "Regional Championship";4->if(c==Competition.NCAAM_D1||c==Competition.NCAAW_D1) "Elite Eight" else "Final Four";5->if(c==Competition.NCAAM_D1||c==Competition.NCAAW_D1) "Final Four" else "Championship";6->"Championship";else->""}
+    val inferredRound=when{
+    c==Competition.NCAAM_D1||c==Competition.NCAAW_D1->when(position/100){1->"First Four";2->"First Round";3->"Second Round";4->"Sweet 16";5->"Elite Eight";6->"Final Four";7->"Championship";else->""}
+    c==Competition.NCAAVB_W->when(position/100){1->"First Round";2->"Second Round";3->"Regional Semifinal";4->"Regional Final";5->"National Semifinal";6->"Championship";else->""}
+    else->when(position/100){1->"First Round";2->"Second Round";3->"Regional Round";4->"Regional Final";5->"Semifinal";6->"Championship";else->""}
+    }
     val round=game.optString("roundName").ifBlank{game.optString("round").ifBlank{inferredRound.ifBlank{"NCAA Tournament"}}}
     out.add(Game(id,c.id,team(home,homeName),team(away,awayName),millis,state,home.optInt("score").takeIf{home.has("score")},away.optInt("score").takeIf{away.has("score")},game.optString("currentPeriod").ifBlank{null},game.optString("contestClock").ifBlank{null},null,round))
    }
