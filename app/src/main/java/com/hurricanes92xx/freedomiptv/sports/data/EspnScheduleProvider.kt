@@ -88,9 +88,12 @@ class EspnScheduleProvider(
                         (0 until notes.length()).mapNotNull { notes.optJSONObject(it)?.optString("headline")?.takeIf(String::isNotBlank) }.joinToString(" ")
                     }.orEmpty()
                     val roundText = listOf(eventName, competitionNotes, seasonName).firstOrNull { text ->
-                        Regex("(?i)(first four|sweet sixteen|elite eight|final four|quarterfinal|semifinal|semi-final|championship|\u005c\u005cbowl\u005c\u005cb|round\\s*[0-9ivx]+|regional|super regional)").containsMatchIn(text)
+                        Regex("(?i)(first four|sweet sixteen|elite eight|final four|quarterfinal|semifinal|semi-final|championship|\\bowl\\b|round\\s*[0-9ivx]+|regional|super regional)").containsMatchIn(text)
                     }
-                    val round = if (postseason) roundText?.trim()?.take(80) ?: seasonName.ifBlank { "Postseason" } else null
+                    val playoffRound = listOf(eventName, competitionNotes).firstOrNull { text ->
+                        Regex("(?i)(first round|wild card|divisional|conference championship|quarterfinal|semifinal|semi-final|championship|national championship|round\\s*[0-9ivx]+|regional|super regional)").containsMatchIn(text)
+                    }
+                    val round = if (postseason) (playoffRound ?: roundText)?.trim()?.take(80) ?: seasonName.ifBlank { "Postseason" } else null
                     val state = when (status?.optString("name")?.lowercase()) {
                         "STATUS_IN_PROGRESS", "STATUS_HALFTIME", "STATUS_END_PERIOD" -> GameState.LIVE
                         "STATUS_FINAL", "STATUS_FULL_TIME" -> GameState.FINAL
