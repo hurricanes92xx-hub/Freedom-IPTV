@@ -135,24 +135,9 @@ class CombatScheduleProvider(
                     val event = events.optJSONObject(i) ?: continue
                     val id = event.optString("id")
                     val title = event.optString("name").ifBlank { event.optString("shortName") }
-                    val comps = event.optJSONArray("competitions") ?: continue
-                    val bouts = buildList {
-                        for (j in 0 until comps.length()) {
-                            val comp = comps.optJSONObject(j) ?: continue
-                            val competitors = comp.optJSONArray("competitors") ?: continue
-                            val names = buildList {
-                                for (k in 0 until competitors.length()) {
-                                    val name = competitors.optJSONObject(k)?.optJSONObject("athlete")?.optString("displayName").orEmpty().trim()
-                                    if (name.isNotBlank()) add(name)
-                                }
-                            }
-                            if (names.size == 2) add(com.hurricanes92xx.freedomiptv.sports.model.CombatBout(
-                                comp.optString("id", "$id-$j"), names,
-                                comp.optJSONObject("type")?.optString("abbreviation")?.takeIf { it.isNotBlank() },
-                                j == comps.length() - 1
-                            ))
-                        }
-                    }
+                    // Fightcenter card buckets label broadcast segments; scoreboard order alone cannot.
+                    val fightcenter = runCatching { fetchUfcFightcenter(id) }.getOrNull()
+                    val bouts = fightcenter?.takeIf { it.isNotEmpty() } ?: parseScoreboardBouts(event, id)
                     if (id.isBlank() || title.isBlank() || bouts.isEmpty()) continue
                     val start = runCatching { Instant.parse(event.optString("date")).toEpochMilli() }.getOrDefault(0L)
                     if (start <= 0L) continue
@@ -164,6 +149,65 @@ class CombatScheduleProvider(
                     add(CombatEvent("espn-ufc-$id", CombatPromotion.UFC.id, title, start,
                         "https://a.espncdn.com/i/teamlogos/leagues/500/ufc.png", bouts, state))
                 }
+            }
+        }
+    }
+
+    /** ESPN Fightcenter groups bouts by Early Prelims, Prelims, and Main Card. */
+    private fun fetchUfcFightcenter(eventId: String): List<com.hurricanes92xx.freedomiptv.sports.model.CombatBout> {
+        val url = "https://site.web.api.espn.com/apis/common/v3/sports/mma/ufc/fightcenter/$eventId?region=us&lang=en&contentorigin=espn&showAirings=buy%2Clive%2Creplay&buyWindow=1m"
+        val request = Request.Builder().url(url).header("User-Agent", "FreedomIPTV/1.0").build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) return emptyList()
+            val root = JSONObject(response.body?.string().orEmpty())
+            val cards = root.optJSONObject("cards") ?: root.optJSONObject("fightCards") ?: return emptyList()
+            val segments = listOf("earlyprelims" to "Early Prelims", "earlyPrelims" to "Early Prelims",
+                "prelims1" to "Prelims", "prelims2" to "Prelims", "prelims" to "Prelims",
+                "maincard" to "Main Card", "mainCard" to "Main Card")
+            val out = mutableListOf<com.hurricanes92xx.freedomiptv.sports.model.CombatBout>()
+            for ((key, label) in segments) {
+                val card = cards.optJSONObject(key) ?: continue
+                val competitions = card.optJSONArray("competitions") ?: continue
+                for (i in 0 until competitions.length()) {
+                    val bout = competitions.optJSONObject(i) ?: continue
+                    val competitors = bout.optJSONArray("competitors") ?: continue
+                    val fighters = buildList {
+                        for (j in 0 until competitors.length()) {
+                            val competitor = competitors.optJSONObject(j) ?: continue
+                            val athlete = competitor.optJSONObject("athlete") ?: competitor
+                            val name = athlete.optString("displayName").ifBlank { athlete.optString("fullName") }.trim()
+                            if (name.isNotBlank()) add(name)
+                        }
+                    }
+                    if (fighters.size != 2) continue
+                    val type = bout.optJSONObject("type")
+                    val weight = type?.optString("text").orEmpty().ifBlank { type?.optString("abbreviation").orEmpty() }
+                    out += com.hurricanes92xx.freedomiptv.sports.model.CombatBout(
+                        bout.optString("id", "$eventId-$key-$i"), fighters,
+                        weight.takeIf { it.isNotBlank() }, label == "Main Card" && i == competitions.length() - 1, label)
+                }
+            }
+            return out
+        }
+    }
+
+    /** Scoreboard fallback deliberately leaves segment unknown instead of guessing from order. */
+    private fun parseScoreboardBouts(event: JSONObject, eventId: String): List<com.hurricanes92xx.freedomiptv.sports.model.CombatBout> {
+        val comps = event.optJSONArray("competitions") ?: return emptyList()
+        return buildList {
+            for (i in 0 until comps.length()) {
+                val comp = comps.optJSONObject(i) ?: continue
+                val competitors = comp.optJSONArray("competitors") ?: continue
+                val names = buildList {
+                    for (j in 0 until competitors.length()) {
+                        val name = competitors.optJSONObject(j)?.optJSONObject("athlete")?.optString("displayName").orEmpty().trim()
+                        if (name.isNotBlank()) add(name)
+                    }
+                }
+                if (names.size == 2) add(com.hurricanes92xx.freedomiptv.sports.model.CombatBout(
+                    comp.optString("id", "$eventId-$i"), names,
+                    comp.optJSONObject("type")?.optString("abbreviation")?.takeIf { it.isNotBlank() },
+                    i == comps.length() - 1, null))
             }
         }
     }
