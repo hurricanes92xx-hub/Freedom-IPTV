@@ -1,3 +1,5 @@
+> Audit tracking is centralized in [SPORTS_AUDIT_TRACKER.md](SPORTS_AUDIT_TRACKER.md). This file is evidence/details only; don't count its findings as a separate audit queue.
+
 # Combat Schedule Audit (November 2026)
 
 ## Current implementation
