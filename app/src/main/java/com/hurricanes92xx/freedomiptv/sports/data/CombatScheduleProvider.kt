@@ -59,7 +59,9 @@ class CombatScheduleProvider(
                     "https://commons.wikimedia.org/wiki/Special:FilePath/AEW_Full_Gear_logo.svg")
             )
             CombatPromotion.TNA -> listOf(
-                event("tna-destination-x-2026", "TNA Destination X 2026", LocalDate.of(2026,11,15),16,
+                event("tna-destination-x-countdown-2026", "TNA Destination X Countdown", LocalDate.of(2026,11,15),18,
+                    "https://commons.wikimedia.org/wiki/Special:FilePath/Impact_Wrestling_Logo.svg"),
+                event("tna-destination-x-2026", "TNA Destination X 2026", LocalDate.of(2026,11,15),19,
                     "https://commons.wikimedia.org/wiki/Special:FilePath/Impact_Wrestling_Logo.svg")
             )
             CombatPromotion.UFC -> listOf(
