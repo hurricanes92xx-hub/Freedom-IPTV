@@ -82,7 +82,7 @@ class CombatScheduleProvider(
                     "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
                 event("ufc-fn-2026-11-21-prelims", "UFC Fight Night: Prochazka vs Stirling Prelims", LocalDate.of(2026,11,21),10,
                     "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
-                event("ufc-fn-2026-11-21", "UFC Fight Night: Prochazka vs Stirling", LocalDate.of(2026,11,21),13,
+                event("ufc-fn-2026-11-21", "UFC Fight Night: Prochazka vs Stirling", LocalDate.of(2026,11,21),14,
                     "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
                 event("ufc-fn-2026-12-05-prelims", "UFC Fight Night: Adesanya vs Magomedov Prelims", LocalDate.of(2026,12,5),10,
                     "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
