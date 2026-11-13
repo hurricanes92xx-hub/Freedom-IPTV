@@ -83,7 +83,14 @@ class EspnScheduleProvider(
                     val seasonType = event.optJSONObject("season")?.optJSONObject("type")
                     val seasonName = seasonType?.optString("name").orEmpty()
                     val postseason = seasonType?.optInt("type", 0) == 3 || seasonName.contains("post", true) || seasonName.contains("playoff", true)
-                    val round = if (postseason) seasonName.ifBlank { "Postseason" } else null
+                    val eventName = event.optString("name")
+                    val competitionNotes = comp.optJSONArray("notes")?.let { notes ->
+                        (0 until notes.length()).mapNotNull { notes.optJSONObject(it)?.optString("headline")?.takeIf(String::isNotBlank) }.joinToString(" ")
+                    }.orEmpty()
+                    val roundText = listOf(eventName, competitionNotes, seasonName).firstOrNull { text ->
+                        Regex("(?i)(first four|sweet sixteen|elite eight|final four|quarterfinal|semifinal|semi-final|championship|\u005c\u005cbowl\u005c\u005cb|round\\s*[0-9ivx]+|regional|super regional)").containsMatchIn(text)
+                    }
+                    val round = if (postseason) roundText?.trim()?.take(80) ?: seasonName.ifBlank { "Postseason" } else null
                     val state = when (status?.optString("name")?.lowercase()) {
                         "STATUS_IN_PROGRESS", "STATUS_HALFTIME", "STATUS_END_PERIOD" -> GameState.LIVE
                         "STATUS_FINAL", "STATUS_FULL_TIME" -> GameState.FINAL
