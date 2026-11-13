@@ -19,7 +19,7 @@
 
 ## Next audit target: ESPN UFC bout-card coverage
 
-- Event-level UFC scoreboard parsing is in place, but fight-by-fight rows remain a separate coverage gap.
+- Event-level UFC scoreboard parsing now falls back to ESPN Fightcenter card buckets for individual bouts. `CombatBout.cardSegment` carries Early Prelims / Prelims / Main Card only when Fightcenter explicitly groups the bout; scoreboard-only fallback leaves segment null rather than guessing. Main-event flag is assigned to the last bout in the Main Card bucket (not the last overall scoreboard competition).
 - Audit ESPN competition ordering, participant names, and event main-event designation; preserve source order and avoid inventing prelim segment labels.
 - Follow up with a bounded bout-card model/UI only when source data reliably distinguishes bouts and broadcast segments.
 
@@ -29,5 +29,5 @@
 - UFC Fight Night events expose prelim and main-card entries where announced.
 - PPV Countdown/pre-show entries are distinct from PPV main card.
 - Event title/date/poster/state can load without fabricated participant or bout data.
-- Verify ESPN competition order and main-event designation against official UFC cards; ESPN's scoreboard currently does not reliably label each bout as Early Prelims vs Prelims vs Main Card, so don't claim those segment assignments at bout level.
+- CI now probes a historical/recent ESPN Fightcenter event and validates participant/card-bucket structure; Android compile verifies the new model/parser. Confirm runtime card rendering and compare one full card with UFC's official listing before calling bout-level coverage complete. ESPN scoreboard-only fallback deliberately does not infer segment labels.
 - CI checks stable parsing/labeling logic and does not require a live event to exist during an offseason.
