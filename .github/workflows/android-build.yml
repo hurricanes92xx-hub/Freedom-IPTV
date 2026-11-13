@@ -126,10 +126,19 @@ jobs:
                        if isinstance(game, dict)]
               if not games:
                   raise RuntimeError(f"{name}: no bracket games returned")
-              positioned = sum(1 for game in games if game.get("bracketPositionId"))
+              positions = [int(game.get("bracketPositionId") or 0) for game in games]
+              positioned = sum(1 for position in positions if position > 0)
               if not positioned:
                   raise RuntimeError(f"{name}: bracket games missing position IDs")
-              print(f"{name}: {len(games)} games, {positioned} with bracket positions")
+              # Verify every round-position bucket consumed by NcaaScheduleProvider.
+              divisor = 1000 if route == "baseball/d1" else 100
+              groups = {position // divisor for position in positions if position > 0}
+              expected = ({1, 2, 3, 4} if route == "baseball/d1" else
+                         {1, 2, 3, 4, 5, 6, 7} if route.startswith("basketball-") and route.endswith("/d1") else
+                         {1, 2, 3, 4, 5, 6})
+              if not expected.issubset(groups):
+                  raise RuntimeError(f"{name}: missing position groups {sorted(expected - groups)}; got {sorted(groups)}")
+              print(f"{name}: {len(games)} games, position groups {sorted(groups)} (round mapping inputs OK)")
           PY
       - name: NCAA baseball dated scoreboard vs bracket smoke (2025 CWS)
         run: |
