@@ -9,6 +9,8 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 
 /**
@@ -49,10 +51,12 @@ class EspnScheduleProvider(
         val start = Instant.ofEpochMilli(fromUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
         val end = Instant.ofEpochMilli(toUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
         val dates = generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }.take(15).toList()
-        dates.flatMap { date ->
-            val day = date.format(DateTimeFormatter.BASIC_ISO_DATE)
-            val url = "https://site.api.espn.com/apis/site/v2/sports/${feed.sport}/${feed.league}/scoreboard?dates=$day"
-            runCatching { fetch(url, competition.id) }.getOrDefault(emptyList())
+        kotlinx.coroutines.coroutineScope {
+            dates.map { date -> async(Dispatchers.IO) {
+                val day = date.format(DateTimeFormatter.BASIC_ISO_DATE)
+                val url = "https://site.api.espn.com/apis/site/v2/sports/${feed.sport}/${feed.league}/scoreboard?dates=$day"
+                runCatching { fetch(url, competition.id) }.getOrDefault(emptyList())
+            } }.awaitAll().flatten()
         }.filter { it.startUtcMillis in fromUtcMillis..toUtcMillis }.distinctBy { it.id }.sortedBy { it.startUtcMillis }
     }
 
