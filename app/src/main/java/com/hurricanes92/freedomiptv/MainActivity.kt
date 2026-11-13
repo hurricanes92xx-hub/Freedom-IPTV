@@ -362,6 +362,7 @@ private fun FreedomApp() {
                         var combatEvents by remember { mutableStateOf<List<CombatEvent>>(emptyList()) }
                         var combatLoading by remember { mutableStateOf(false) }
                         var combatRefreshCounter by remember { mutableIntStateOf(0) }
+                        var lastCombatRefreshCounter by remember { mutableIntStateOf(0) }
                         var ppvMode by remember { mutableStateOf(false) }
                         LaunchedEffect(selectedPromotion, scheduleDayOffset, ppvMode, combatRefreshCounter) {
                             combatLoading = true
@@ -371,7 +372,9 @@ private fun FreedomApp() {
                             val eventEnd = if (ppvMode) eventStart.plusDays(30) else day.plusDays(1)
                             val from = eventStart.atStartOfDay(zone).toInstant().toEpochMilli()
                             val to = eventEnd.atStartOfDay(zone).toInstant().toEpochMilli() - 1L
-                            combatEvents = scheduleProvider.combatEvents(selectedPromotion, from, to, bypassCache = combatRefreshCounter > 0)
+                            val forceRefresh = combatRefreshCounter != lastCombatRefreshCounter
+                            lastCombatRefreshCounter = combatRefreshCounter
+                            combatEvents = scheduleProvider.combatEvents(selectedPromotion, from, to, bypassCache = forceRefresh)
                             artworkCache.putAll(combatEvents.mapNotNull { event -> event.posterUrl?.let { event.id to it } }.toMap())
                             combatLoading = false
                         }
