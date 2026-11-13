@@ -25,7 +25,7 @@ class CombatScheduleProvider(
         if (toUtcMillis < fromUtcMillis) return@withContext emptyList()
         val start = Instant.ofEpochMilli(fromUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
         val end = Instant.ofEpochMilli(toUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
-        generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }.take(15)
+        generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }.take(31)
             .flatMap { day ->
                 val date = day.format(DateTimeFormatter.ISO_LOCAL_DATE)
                 val url = "https://www.thesportsdb.com/api/v1/json/$apiKey/eventsday.php?d=$date&s=" + URLEncoder.encode("Fighting", "UTF-8")
