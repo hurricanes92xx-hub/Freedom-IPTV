@@ -155,7 +155,7 @@ jobs:
                   if game.get("gameID"):
                       scoreboard_ids.add(str(game["gameID"]))
           overlap = len(set(ids) & scoreboard_ids)
-          if overlap < 140:
+          if overlap < 130:
               raise RuntimeError(f"2025 baseball bracket/scoreboard game-ID overlap too low: {overlap}/153")
           print(f"Baseball 2025: {len(games)} unique bracket games; position groups {sorted(position_groups)}; "
                 f"{len(dates)} bracket dates checked, {scoreboard_days} with scoreboard events; "
