@@ -34,6 +34,20 @@ class CombatScheduleProvider(
             .distinctBy { it.id }.sortedBy { it.startUtcMillis }.toList()
     }
 
+    private fun matchesPromotion(event: JSONObject, title: String, promotion: CombatPromotion): Boolean {
+        val metadata = listOf("strLeague", "strSport", "strEventAlternate", "strEvent").joinToString(" ") {
+            event.optString(it)
+        }.lowercase()
+        val normalizedTitle = title.lowercase()
+        return when (promotion) {
+            CombatPromotion.UFC -> "ufc" in metadata || "ultimate fighting championship" in metadata
+            CombatPromotion.BOXING -> "boxing" in metadata || "box" in event.optString("strSport").lowercase()
+            CombatPromotion.WWE -> "wwe" in metadata || "world wrestling entertainment" in metadata
+            CombatPromotion.AEW -> "aew" in metadata || "all elite wrestling" in metadata
+            CombatPromotion.TNA -> "tna" in metadata || "impact wrestling" in metadata || "total nonstop action" in metadata
+        }
+    }
+
     private fun fetch(url: String, promotion: CombatPromotion): List<CombatEvent> {
         val request = Request.Builder().url(url).header("User-Agent", "FreedomIPTV/1.0").build()
         client.newCall(request).execute().use { response ->
@@ -43,7 +57,7 @@ class CombatScheduleProvider(
                 for (i in 0 until events.length()) {
                     val event = events.optJSONObject(i) ?: continue
                     val title = event.optString("strEvent").trim()
-                    if (title.isBlank() || !title.contains(promotion.label, ignoreCase = true)) continue
+                    if (title.isBlank() || !matchesPromotion(event, title, promotion)) continue
                     val date = event.optString("dateEvent")
                     val time = event.optString("strTime").ifBlank { "00:00:00" }.take(8)
                     val start = runCatching { Instant.parse("${date}T${time}Z").toEpochMilli() }.getOrDefault(0L)
