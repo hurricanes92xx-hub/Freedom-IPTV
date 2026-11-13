@@ -106,7 +106,6 @@ class CfbdScheduleProvider(
                                 if (namedRound.contains("fcs playoffs", ignoreCase = true)) namedRound
                                 else "FCS Playoffs • $namedRound"
                             } else when (game.optInt("week", week)) {
-                                when (game.optInt("week", week)) {
                                     // CFBD postseason calendar uses round weeks 1–6; keep
                                     // legacy/global week values accepted defensively.
                                     1, 15 -> "FCS Playoffs • First Round"
