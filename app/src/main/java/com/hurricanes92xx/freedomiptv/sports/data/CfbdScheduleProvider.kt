@@ -85,6 +85,15 @@ class CfbdScheduleProvider(
                             else -> GameState.SCHEDULED
                         }
                         val id = game.optString("id")
+                        val playoff = game.optJSONObject("playoff")
+                        val notes = game.optString("notes")
+                        val explicitRound = playoff?.optString("roundName").orEmpty()
+                            .ifBlank { playoff?.optString("round").orEmpty() }
+                            .ifBlank { notes.takeIf { it.contains("playoff", ignoreCase = true) || it.contains("championship", ignoreCase = true) }.orEmpty() }
+                        val roundLabel = explicitRound.takeIf(String::isNotBlank)
+                            ?: if (division == Competition.NCAAF_FCS && seasonType.lowercase() == "postseason") {
+                                "FCS Playoffs • Week ${game.optInt("week", week)}"
+                            } else null
                         gamesById[id] = Game(
                             id, division.id,
                             Team(game.optString("homeId"), homeName, null, null, division.id),
@@ -92,7 +101,7 @@ class CfbdScheduleProvider(
                             kickoff, state,
                             game.optInt("homePoints").takeIf { !game.isNull("homePoints") },
                             game.optInt("awayPoints").takeIf { !game.isNull("awayPoints") },
-                            null, game.optString("week"), game.optString("venue")
+                            null, game.optString("week"), game.optString("venue"), roundLabel
                         )
                     }
                 }
