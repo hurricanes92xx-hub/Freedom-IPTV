@@ -18,8 +18,8 @@ This is a provider/code audit, not a claim that every future event has been live
 
 | Competition | Current schedule source | Tournament handling / caveat |
 |---|---|---|
-| FBS | ESPN + CFBD | ESPN postseason season type and expanded event/notes round extraction; CFBD seasonType=both |
-| FCS | ESPN | Postseason season type plus expanded event/notes round extraction (specific round when exposed; otherwise generic postseason) |
+| FBS | ESPN + CFBD | ESPN postseason season type and expanded event/notes round extraction; CFBD supplements by `classification=fbs`, week-scoped requests |
+| FCS | CFBD division-filtered (`classification=fcs`) | Week-scoped CFBD queries + game classification filter; postseason labels from CFBD week/status fields. ESPN is no longer the FCS primary. Live source/count validation still pending |
 | Men's basketball D1 | ESPN + NCAA scoreboard + NCAA bracket | Bracket position IDs mapped First Four through Championship |
 | Men's basketball D2/D3 | NCAA scoreboard + NCAA bracket | 2025 bracket positions mapped through First Round, Second Round, Regional Semifinal/Final, National Semifinal, Championship |
 | Women's basketball D1 | ESPN + NCAA scoreboard + NCAA bracket | Bracket position IDs mapped First Four through Championship |
@@ -46,5 +46,5 @@ This is a provider/code audit, not a claim that every future event has been live
 ## Live schedule coverage spot-check (2026-11-13)
 
 - Compared the upcoming Nov 13–14 FBS/FCS slate against NCAA.com and ESPN Press Room schedule listings. Both divisions have games during the current week; an empty date must not be described as a league offseason.
-- **Known data-model limitation:** ESPN adapter maps both `ncaaf-fbs` and `ncaaf-fcs` to the same `football/college-football` scoreboard. NCAA alternate adapter intentionally returns empty for both football divisions, while CFBD supplement currently only populates FBS. Consequently, FCS selection can show the shared ESPN feed (potential FBS leakage) and has no independent FCS-only feed guarantee. This is an upstream/provider separation issue, not an offseason condition.
-- Follow-up: add division-aware FCS source/filtering and validate FBS/FCS event counts against official slates before marking coverage complete. Source spot-check: NCAA week 11 schedule (Nov 12, 2026) and ESPN Week 11 press release (Nov 9, 2026).
+- **Division separation change (Nov 13):** FCS now uses CFBD as its primary source with `classification=fcs`; FBS remains ESPN-primary with CFBD `classification=fbs` as a supplement. The CFBD adapter obtains the season calendar and queries only overlapping weeks, then filters returned games by the requested UTC window and team classifications. This removes the previous shared-ESPN-primary FCS leakage path in repository orchestration.
+- **Still unverified:** runtime/API-key validation of FCS and FBS event counts against official slates, including playoff weeks. CFBD is enabled only when `CFBD_API_KEY` is configured; without it, the FCS primary returns empty (no ESPN fallback currently). Treat this as feed validation pending, not offseason.
