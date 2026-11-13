@@ -361,8 +361,9 @@ private fun FreedomApp() {
                         var selectedPromotion by remember { mutableStateOf(CombatPromotion.WWE) }
                         var combatEvents by remember { mutableStateOf<List<CombatEvent>>(emptyList()) }
                         var combatLoading by remember { mutableStateOf(false) }
+                        var combatRefreshCounter by remember { mutableIntStateOf(0) }
                         var ppvMode by remember { mutableStateOf(false) }
-                        LaunchedEffect(selectedPromotion, scheduleDayOffset, ppvMode) {
+                        LaunchedEffect(selectedPromotion, scheduleDayOffset, ppvMode, combatRefreshCounter) {
                             combatLoading = true
                             val zone = java.time.ZoneId.systemDefault()
                             val day = java.time.LocalDate.now(zone).plusDays(scheduleDayOffset.toLong())
@@ -370,7 +371,7 @@ private fun FreedomApp() {
                             val eventEnd = if (ppvMode) eventStart.plusDays(30) else day.plusDays(1)
                             val from = eventStart.atStartOfDay(zone).toInstant().toEpochMilli()
                             val to = eventEnd.atStartOfDay(zone).toInstant().toEpochMilli() - 1L
-                            combatEvents = scheduleProvider.combatEvents(selectedPromotion, from, to)
+                            combatEvents = scheduleProvider.combatEvents(selectedPromotion, from, to, bypassCache = combatRefreshCounter > 0)
                             artworkCache.putAll(combatEvents.mapNotNull { event -> event.posterUrl?.let { event.id to it } }.toMap())
                             combatLoading = false
                         }
@@ -430,7 +431,7 @@ private fun FreedomApp() {
                                         Text(java.time.LocalDate.now().plusDays(scheduleDayOffset.toLong()).format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d")), color = Color.LightGray, fontSize = 12.sp)
                                         OutlinedButton(onClick = { scheduleDayOffset++ }) { Text("›") }
                                     }
-                                    Row(verticalAlignment = Alignment.CenterVertically) { Text("PPV • FIGHT NIGHT • PRELIMS", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.weight(1f)); FilterChip(selected = ppvMode, onClick = { ppvMode = !ppvMode }, label = { Text(if (ppvMode) "30 DAYS" else "TODAY") }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = FreedomRed, selectedLabelColor = Color.White)) }
+                                    Row(verticalAlignment = Alignment.CenterVertically) { Text("PPV • FIGHT NIGHT • PRELIMS", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.weight(1f)); TextButton(enabled = !combatLoading, onClick = { combatRefreshCounter++ }) { Text("↻ Refresh", color = FreedomRed) }; FilterChip(selected = ppvMode, onClick = { ppvMode = !ppvMode }, label = { Text(if (ppvMode) "30 DAYS" else "TODAY") }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = FreedomRed, selectedLabelColor = Color.White)) }
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         items(CombatPromotion.values().toList()) { promotion ->
                                             FilterChip(selected = selectedPromotion == promotion, onClick = { selectedPromotion = promotion }, label = { Text(promotion.label) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = FreedomRed, selectedLabelColor = Color.White))
