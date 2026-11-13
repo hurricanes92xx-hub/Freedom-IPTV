@@ -17,7 +17,7 @@ This is the **only checklist for audit completion**. Other sports documents are 
 |---|---|---|---|
 | Pro leagues (NFL, NBA, WNBA, MLB, NHL, MLS, EPL, UCL) | ESPN schema smoke; league supplements reviewed in provider code | Feed schema checked; event completeness/runtime open | In-season sample, league-specific postseason labels, UI date/state checks |
 | FBS football | ESPN + CFBD division/week smoke; CFP/bowl payload audit | Provider/code reviewed; CFP round normalization implemented | Validate dated CFP/bowl labels against actual event cards/runtime |
-| FCS football | CFBD classification/week smoke | Division filter implemented; live slate spot-check done | FCS playoff round + dated game/UI verification |
+| FCS football | CFBD classification/week smoke | **Checked:** CFBD division filter and Nov 13 in-season slate spot-check; ESPN fallback explicitly degraded/mixed | FCS playoff round + dated game/UI verification |
 | Men's basketball D1 | ESPN/NCAA + 2025 bracket smoke/round mapping | Historical bracket shape verified | Runtime season date window and tournament card verification |
 | Men's basketball D2 | NCAA + 2025 bracket smoke/round mapping | Historical bracket shape verified | Runtime season date window and tournament card verification |
 | Men's basketball D3 | NCAA + 2025 bracket smoke/round mapping | Historical bracket shape verified | Runtime season date window and tournament card verification |
@@ -32,6 +32,14 @@ This is the **only checklist for audit completion**. Other sports documents are 
 | Combat: WWE | SportsDB + recurring TV supplements | Selector/filter/UI wired; source completeness unverified | Verify Raw/SmackDown/NXT + PPV sample dates |
 | Combat: AEW | SportsDB + recurring TV supplements | Selector/filter/UI wired; source completeness unverified | Verify Dynamite/Collision + PPV sample dates |
 | Combat: TNA | SportsDB + recurring TV supplements | Selector/filter/UI wired; source completeness unverified | Verify Impact + PPV sample dates |
+
+## Completed sport-audit evidence (do not repeat)
+
+- [x] **FBS/FCS source separation:** repository prefers CFBD classification-specific FCS results; ESPN fallback is only used if CFBD yields no games and may mix divisions. CI validates FBS/FCS classification; Nov 13 spot-check confirmed both divisions had games that week. Reopen only for playoffs or a concrete regression.
+- [x] **FBS CFP labels:** CFBD playoff round/roundName/bowlName normalization implemented and source payload reviewed. Reopen only for a dated card/runtime mismatch.
+- [x] **NCAA bracket source shape:** 2025 endpoints and position groups checked for six basketball divisions, women's volleyball D1, and baseball D1. Historical endpoint audit is complete; runtime display remains open in the scope table.
+- [x] **Baseball historical join:** 153 2025 bracket game IDs cross-confirmed against dated scoreboards; completed historical integration evidence, not a recurring audit.
+- [x] **Women's gymnastics source:** RTN 2026 schedule/ranking endpoint smoke and inspection passed; runtime D1/timezone/round display remains open.
 
 ## CI checks: intentionally distinct (not duplicate sport audits)
 
