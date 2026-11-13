@@ -54,6 +54,24 @@ class CombatScheduleProvider(
                 event("wwe-survivor-series-2026", "WWE Survivor Series: WarGames 2026", LocalDate.of(2026,11,28),18,
                     "https://commons.wikimedia.org/wiki/Special:FilePath/WWE_Survivor_Series_logo.svg")
             )
+            CombatPromotion.AEW -> listOf(
+                event("aew-full-gear-2026", "AEW Full Gear 2026", LocalDate.of(2026,11,14),18,
+                    "https://commons.wikimedia.org/wiki/Special:FilePath/AEW_Full_Gear_logo.svg")
+            )
+            CombatPromotion.TNA -> listOf(
+                event("tna-destination-x-2026", "TNA Destination X 2026", LocalDate.of(2026,11,15),16,
+                    "https://commons.wikimedia.org/wiki/Special:FilePath/Impact_Wrestling_Logo.svg")
+            )
+            CombatPromotion.UFC -> listOf(
+                event("ufc-334-2026", "UFC 334: Gane vs Hokit", LocalDate.of(2026,11,14),21,
+                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
+                event("ufc-fn-2026-11-21", "UFC Fight Night: Prochazka vs Stirling", LocalDate.of(2026,11,21),10,
+                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
+                event("ufc-fn-2026-12-05", "UFC Fight Night: Adesanya vs Magomedov", LocalDate.of(2026,12,5),21,
+                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
+                event("ufc-335-2026", "UFC 335: Oliveira vs Lopes", LocalDate.of(2026,12,12),21,
+                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg")
+            )
             else -> emptyList()
         }
     }
