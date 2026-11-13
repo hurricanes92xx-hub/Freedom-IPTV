@@ -348,7 +348,7 @@ private fun FreedomApp() {
                         val sportsTerms = Regex("sport|ncaa|college|basketball|volleyball|nba|wnba|nfl|nhl|mlb|soccer|football|ufc|mma|boxing|wrestling|espn|fox sports|sky sports|bein sports", RegexOption.IGNORE_CASE)
                         val sports = channels.filter { channel -> (channel.name + " " + (categoryNames[channel.categoryId] ?: "")).contains(sportsTerms) }
                         var sportFilter by remember { mutableStateOf("All") }
-                        val filterTerms = mapOf("Football" to Regex("football|nfl|college football", RegexOption.IGNORE_CASE), "Basketball" to Regex("basketball|nba|wnba", RegexOption.IGNORE_CASE), "Baseball" to Regex("baseball|mlb", RegexOption.IGNORE_CASE), "Hockey" to Regex("hockey|nhl", RegexOption.IGNORE_CASE), "Soccer" to Regex("soccer|mls|epl|champions league", RegexOption.IGNORE_CASE), "Volleyball" to Regex("volleyball", RegexOption.IGNORE_CASE), "Combat" to Regex("ufc|mma|boxing", RegexOption.IGNORE_CASE), "Wrestling" to Regex("wwe|aew|tna|wrestling", RegexOption.IGNORE_CASE))
+                        val filterTerms = mapOf("Football" to Regex("football|nfl|college football", RegexOption.IGNORE_CASE), "Gymnastics" to Regex("gymnastics|gym", RegexOption.IGNORE_CASE), "Basketball" to Regex("basketball|nba|wnba", RegexOption.IGNORE_CASE), "Baseball" to Regex("baseball|mlb", RegexOption.IGNORE_CASE), "Hockey" to Regex("hockey|nhl", RegexOption.IGNORE_CASE), "Soccer" to Regex("soccer|mls|epl|champions league", RegexOption.IGNORE_CASE), "Volleyball" to Regex("volleyball", RegexOption.IGNORE_CASE), "Combat" to Regex("ufc|mma|boxing", RegexOption.IGNORE_CASE), "Wrestling" to Regex("wwe|aew|tna|wrestling", RegexOption.IGNORE_CASE))
                         val visibleSports = sports.filter { channel -> sportFilter == "All" || (channel.name + " " + (categoryNames[channel.categoryId] ?: "")).contains(filterTerms[sportFilter] ?: Regex("(?!)")) }
                         val scheduleProvider = remember { SportsScheduleRepository() }
                         var selectedCompetition by remember { mutableStateOf(Competition.NFL) }
@@ -492,7 +492,7 @@ Text(listOfNotNull((if(game.state == GameState.LIVE) "LIVE • " else "") + Simp
                                 Text("EXPLORE SPORTS", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(9.dp))
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    items(listOf("All", "Football", "Basketball", "Baseball", "Hockey", "Soccer", "Volleyball", "Combat", "Wrestling")) { name ->
+                                    items(listOf("All", "Football", "Gymnastics", "Basketball", "Baseball", "Hockey", "Soccer", "Volleyball", "Combat", "Wrestling")) { name ->
                                         FilterChip(selected = sportFilter == name, onClick = { sportFilter = name }, label = { Text(name) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = FreedomRed, selectedLabelColor = Color.White))
                                     }
                                 }
