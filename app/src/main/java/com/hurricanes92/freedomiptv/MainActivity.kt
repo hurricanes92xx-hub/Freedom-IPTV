@@ -442,7 +442,11 @@ private fun FreedomApp() {
                                     else combatEvents.take(12).forEach { event ->
                                         Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
                                             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                AsyncImage(model = artworkCache.get(event.id) ?: event.posterUrl, contentDescription = event.title, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)))
+                                                Box(Modifier.size(76.dp, 64.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF202B3D)), contentAlignment = Alignment.Center) {
+                                                    Text(event.promotionId.uppercase(), color = Color(0xFF9BA8BA), fontSize = 10.sp, fontWeight = FontWeight.Black, maxLines = 2)
+                                                    val eventArtwork = artworkCache.get(event.id) ?: event.posterUrl
+                                                    if (!eventArtwork.isNullOrBlank()) AsyncImage(model = eventArtwork, contentDescription = event.title, modifier = Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+                                                }
                                                 Column(Modifier.padding(start = 12.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                                     Text(event.title, color = Color.White, fontWeight = FontWeight.Bold)
                                                     Text((if (event.title.contains("prelim", true)) "PRELIMS • " else if (ppvMode) "PPV / EVENT • " else "") + SimpleDateFormat("EEE, MMM d • h:mm a", Locale.getDefault()).format(Date(event.startUtcMillis)), color = Color.LightGray, fontSize = 12.sp)
