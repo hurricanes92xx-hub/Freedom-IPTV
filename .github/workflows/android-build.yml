@@ -118,6 +118,49 @@ jobs:
                   raise RuntimeError(f"{name}: bracket games missing position IDs")
               print(f"{name}: {len(games)} games, {positioned} with bracket positions")
           PY
+      - name: NCAA baseball dated scoreboard vs bracket smoke (2025 CWS)
+        run: |
+          python - <<'PY'
+          import datetime, json, urllib.request
+
+          base = "https://ncaa-api.henrygd.me"
+          headers = {"User-Agent": "FreedomIPTV-CI/1.0"}
+          def get(path):
+              req = urllib.request.Request(base + path, headers=headers)
+              with urllib.request.urlopen(req, timeout=20) as response:
+                  if response.status != 200:
+                      raise RuntimeError(f"HTTP {response.status}: {path}")
+                  return json.loads(response.read())
+
+          bracket = get("/brackets/baseball/d1/2025")
+          championships = bracket.get("championships") or []
+          games = [g for c in championships for g in (c.get("games") or []) if isinstance(g, dict)]
+          ids = [str(g.get("contestId")) for g in games if g.get("contestId")]
+          if len(games) != 153 or len(set(ids)) != 153:
+              raise RuntimeError(f"2025 baseball bracket expected 153 unique games; got {len(games)} / {len(set(ids))}")
+          position_groups = {int(g.get("bracketPositionId", 0)) // 1000 for g in games}
+          if not {1, 2, 3, 4}.issubset(position_groups):
+              raise RuntimeError(f"baseball bracket missing Regional/Super Regional/CWS/CWS Final position groups: {position_groups}")
+
+          dates = sorted({datetime.datetime.strptime(g["startDate"], "%m/%d/%Y").date()
+                         for g in games if g.get("startDate")})
+          scoreboard_ids = set()
+          scoreboard_days = 0
+          for day in dates:
+              payload = get(f"/scoreboard/baseball/d1/{day:%Y/%m/%d}")
+              daily = payload.get("games") or []
+              scoreboard_days += bool(daily)
+              for item in daily:
+                  game = item.get("game") or item
+                  if game.get("gameID"):
+                      scoreboard_ids.add(str(game["gameID"]))
+          overlap = len(set(ids) & scoreboard_ids)
+          if overlap < 140:
+              raise RuntimeError(f"2025 baseball bracket/scoreboard game-ID overlap too low: {overlap}/153")
+          print(f"Baseball 2025: {len(games)} unique bracket games; position groups {sorted(position_groups)}; "
+                f"{len(dates)} bracket dates checked, {scoreboard_days} with scoreboard events; "
+                f"{overlap}/153 bracket IDs cross-confirmed in dated scoreboards.")
+          PY
       - name: Women's gymnastics Road to Nationals feed smoke (2026 season)
         run: |
           python - <<'PY'
