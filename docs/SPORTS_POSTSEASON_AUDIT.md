@@ -53,3 +53,10 @@ This is a provider/code audit, not a claim that every future event has been live
 
 
 - **CI gymnastics feed smoke (Nov 13, 2026, build #301):** RTN 2026 schedule endpoint returned meets; ranking week was safely parsed and ranking fallback handled offseason values. The smoke test passed alongside CFBD, NCAA bracket checks, and APK build. This validates live endpoint response and CI resilience, not full app event rendering or complete D1 filtering.
+
+
+## FBS/FCS playoff round audit (Nov 13, 2026)
+
+- Reviewed `CfbdScheduleProvider.kt`: it queries calendar-overlapping weeks with division classification and exact UTC window filtering; FCS/FBS team classification is enforced and game IDs deduplicated.
+- **Gap found:** CFBD `Game` construction currently passes the raw `week` into the clock/detail field and leaves `round` null. Thus the feed can return FCS playoff games, but the provider itself does not label FCS playoff rounds. ESPN's shared college-football feed extracts postseason round text from event/competition notes, but its FCS fallback is not division-clean.
+- Action: retain division-correct CFBD as FCS primary; round-labeling remains a follow-up. Avoid guessing round names from week numbers until the actual CFBD postseason payload is checked.
