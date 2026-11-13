@@ -12,6 +12,9 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.time.Instant
 import java.time.ZoneOffset
+import java.time.ZoneId
+import java.time.LocalDate
+import java.time.DayOfWeek
 import java.time.format.DateTimeFormatter
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
@@ -36,7 +39,33 @@ class CombatScheduleProvider(
                 runCatching { fetch(url, promotion) }.getOrDefault(emptyList())
             } }.awaitAll().flatten()
         }.filter { it.startUtcMillis in fromUtcMillis..toUtcMillis }
+            .plus(weeklyTelevision(promotion, start, end).filter { it.startUtcMillis in fromUtcMillis..toUtcMillis })
             .distinctBy { it.id }.sortedBy { it.startUtcMillis }
+    }
+
+    /** Weekly TV slots supplement omitted event listings; these are broadcast times, not venue bell times. */
+    private fun weeklyTelevision(promotion: CombatPromotion, start: LocalDate, end: LocalDate): List<CombatEvent> {
+        val zone = ZoneId.of("America/New_York"); val out = mutableListOf<CombatEvent>(); var day = start
+        while (!day.isAfter(end)) {
+            val slot = when (promotion) {
+                CombatPromotion.WWE -> when (day.dayOfWeek) {
+                    DayOfWeek.MONDAY -> Triple("Monday Night Raw",20,"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/WWE_Raw_Logo_2019.svg/1280px-WWE_Raw_Logo_2019.svg.png")
+                    DayOfWeek.TUESDAY -> Triple("WWE NXT",20,"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/WWE_NXT_Logo.svg/1280px-WWE_NXT_Logo.svg.png")
+                    DayOfWeek.FRIDAY -> Triple("WWE SmackDown",20,"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/WWE_SmackDown_Logo.svg/1280px-WWE_SmackDown_Logo.svg.png")
+                    else -> null
+                }
+                CombatPromotion.AEW -> when (day.dayOfWeek) {
+                    DayOfWeek.WEDNESDAY -> Triple("AEW Dynamite",20,"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/AEW_Dynamite_logo_%28simplified%29.jpg/1280px-AEW_Dynamite_logo_%28simplified%29.jpg")
+                    DayOfWeek.SATURDAY -> Triple("AEW Collision",20,"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/AEW_Collision_logo.svg/1280px-AEW_Collision_logo.svg.png")
+                    else -> null
+                }
+                CombatPromotion.TNA -> if (day.dayOfWeek == DayOfWeek.THURSDAY) Triple("TNA Thursday Night iMPACT!",21,"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Thursday_Night_iMPACT%21.png/1280px-Thursday_Night_iMPACT%21.png") else null
+                else -> null
+            }
+            if (slot != null) out += CombatEvent("tv-\${promotion.id}-\$day",promotion.id,slot.first,day.atTime(slot.second,0).atZone(zone).toInstant().toEpochMilli(),slot.third)
+            day=day.plusDays(1)
+        }
+        return out
     }
 
     private fun matchesPromotion(event: JSONObject, title: String, promotion: CombatPromotion): Boolean {
