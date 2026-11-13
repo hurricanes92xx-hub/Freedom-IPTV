@@ -63,6 +63,8 @@ class CombatScheduleProvider(
                     "https://commons.wikimedia.org/wiki/Special:FilePath/Impact_Wrestling_Logo.svg")
             )
             CombatPromotion.UFC -> listOf(
+                event("ufc-334-prelims-2026", "UFC 334 Prelims", LocalDate.of(2026,11,14),17,
+                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
                 event("ufc-334-2026", "UFC 334: Gane vs Hokit", LocalDate.of(2026,11,14),21,
                     "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
                 event("ufc-fn-2026-11-21", "UFC Fight Night: Prochazka vs Stirling", LocalDate.of(2026,11,21),10,
