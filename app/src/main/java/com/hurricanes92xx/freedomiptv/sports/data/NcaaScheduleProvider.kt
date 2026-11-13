@@ -23,12 +23,14 @@ class NcaaScheduleProvider(
  )
  suspend fun schedule(competition:Competition,fromUtcMillis:Long,toUtcMillis:Long):List<Game> = withContext(Dispatchers.IO){
   val route=routes[competition]?:return@withContext emptyList()
+  // NCAA football scoreboard uses season/week paths, not calendar dates. ESPN is the primary football feed.
+  if(competition==Competition.NCAAF_FBS||competition==Competition.NCAAF_FCS)return@withContext emptyList()
   if(toUtcMillis<fromUtcMillis)return@withContext emptyList()
   val first=Instant.ofEpochMilli(fromUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
   val last=Instant.ofEpochMilli(toUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
   val out=mutableListOf<Game>();var day=first
   while(!day.isAfter(last)&&out.size<500){
-   val date=day.format(DateTimeFormatter.BASIC_ISO_DATE)
+   val date=day.format(DateTimeFormatter.ofPattern("yyyy/MM/dd"))
    runCatching{
     val req=Request.Builder().url("https://ncaa-api.henrygd.me/scoreboard/$route/$date").header("User-Agent","FreedomIPTV/1.0").build()
     client.newCall(req).execute().use{response->
