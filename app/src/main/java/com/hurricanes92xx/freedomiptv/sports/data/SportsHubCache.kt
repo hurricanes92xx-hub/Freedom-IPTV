@@ -13,7 +13,7 @@ class SportsHubCache(context:Context) {
   val raw=prefs.getString("events","[]") ?: "[]"
   val events=runCatching { val a=JSONArray(raw); (0 until a.length()).mapNotNull { i ->
    val o=a.optJSONObject(i) ?: return@mapNotNull null
-   HubEventCard(o.getString("id"),o.getString("title"),o.optString("subtitle"),o.optLong("start"),o.getString("sport"),com.hurricanes92xx.freedomiptv.sports.model.HubEventPresentation.valueOf(o.getString("presentation")),o.optString("home").ifBlank{null},o.optString("away").ifBlank{null},o.optString("homeLogo").ifBlank{null},o.optString("awayLogo").ifBlank{null},o.optString("poster").ifBlank{null},o.optString("network").ifBlank{null},o.optString("channel").ifBlank{null},o.optBoolean("live"),o.optString("score").ifBlank{null},o.optString("status").ifBlank{null})
+   runCatching { HubEventCard(o.getString("id"),o.getString("title"),o.optString("subtitle"),o.optLong("start"),o.getString("sport"),com.hurricanes92xx.freedomiptv.sports.model.HubEventPresentation.valueOf(o.getString("presentation")),o.optString("home").ifBlank{null},o.optString("away").ifBlank{null},o.optString("homeLogo").ifBlank{null},o.optString("awayLogo").ifBlank{null},o.optString("poster").ifBlank{null},o.optString("network").ifBlank{null},o.optString("channel").ifBlank{null},o.optBoolean("live"),o.optString("score").ifBlank{null},o.optString("status").ifBlank{null}) }.getOrNull()
   } }.getOrDefault(emptyList())
   return SportsHubSnapshot(events,prefs.getLong("updated",0L).takeIf{it>0},false,prefs.getString("error",null))
  }
