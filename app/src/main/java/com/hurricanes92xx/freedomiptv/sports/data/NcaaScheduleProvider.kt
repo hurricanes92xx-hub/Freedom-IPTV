@@ -25,7 +25,7 @@ class NcaaScheduleProvider(
  private val bracketRoutes=mapOf(
   Competition.NCAAM_D1 to BracketRoute("basketball-men","d1"), Competition.NCAAM_D2 to BracketRoute("basketball-men","d2"), Competition.NCAAM_D3 to BracketRoute("basketball-men","d3"),
   Competition.NCAAW_D1 to BracketRoute("basketball-women","d1"), Competition.NCAAW_D2 to BracketRoute("basketball-women","d2"), Competition.NCAAW_D3 to BracketRoute("basketball-women","d3"),
-  Competition.NCAAVB_W to BracketRoute("volleyball-women","d1"), Competition.NCAABASE to BracketRoute("baseball-men","d1")
+  Competition.NCAAVB_W to BracketRoute("volleyball-women","d1"), Competition.NCAABASE to BracketRoute("baseball","d1")
  )
  private fun bracketGames(root:JSONObject,c:Competition,from:Long,to:Long):List<Game>{
   val out=mutableListOf<Game>()
@@ -55,6 +55,7 @@ class NcaaScheduleProvider(
     c==Competition.NCAAM_D1||c==Competition.NCAAW_D1->when(position/100){1->"First Four";2->"First Round";3->"Second Round";4->"Sweet 16";5->"Elite Eight";6->"Final Four";7->"Championship";else->""}
     c==Competition.NCAAVB_W->when(position/100){1->"First Round";2->"Second Round";3->"Regional Semifinal";4->"Regional Final";5->"National Semifinal";6->"Championship";else->""}
     c==Competition.NCAAM_D2||c==Competition.NCAAM_D3||c==Competition.NCAAW_D2||c==Competition.NCAAW_D3->when(position/100){1->"First Round";2->"Second Round";3->"Regional Semifinal";4->"Regional Final";5->"National Semifinal";6->"Championship";else->""}
+    c==Competition.NCAABASE->when(position/1000){1->"Regional";2->"Super Regional";3->"College World Series";4->"CWS Championship";else->""}
     else->""
     }
     val round=game.optString("roundName").ifBlank{game.optString("round").ifBlank{inferredRound.ifBlank{"NCAA Tournament"}}}
