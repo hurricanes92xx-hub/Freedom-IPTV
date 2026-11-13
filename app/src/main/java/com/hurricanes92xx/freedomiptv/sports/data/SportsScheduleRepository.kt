@@ -52,6 +52,10 @@ class SportsScheduleRepository(
         }
         val espnGames = primary.await()
         val ncaaGames = college.await()
+        // RTN is the dedicated women's gymnastics schedule and postseason source.
+        val rtnGymnastics = if (competition == Competition.NCAAGYM_W) runCatching {
+            roadToNationalsGymnastics.schedule(fromUtcMillis, toUtcMillis)
+        }.getOrDefault(emptyList()) else emptyList()
         val days = generateSequence(Instant.ofEpochMilli(fromUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()) { it.plusDays(1) }
             .takeWhile { !it.isAfter(Instant.ofEpochMilli(toUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()) }.toList()
         // Combat feeds are routinely absent from ESPN; query the supplement there even with primary results.
