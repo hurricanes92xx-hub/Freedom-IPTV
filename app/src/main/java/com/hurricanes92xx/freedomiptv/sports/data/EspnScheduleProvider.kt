@@ -80,6 +80,10 @@ class EspnScheduleProvider(
                     val start = runCatching { Instant.parse(event.optString("date")).toEpochMilli() }.getOrDefault(0L)
                     if (start <= 0L) continue
                     val status = comp.optJSONObject("status")?.optJSONObject("type")
+                    val seasonType = event.optJSONObject("season")?.optJSONObject("type")
+                    val seasonName = seasonType?.optString("name").orEmpty()
+                    val postseason = seasonType?.optInt("type", 0) == 3 || seasonName.contains("post", true) || seasonName.contains("playoff", true)
+                    val round = if (postseason) seasonName.ifBlank { "Postseason" } else null
                     val state = when (status?.optString("name")?.lowercase()) {
                         "STATUS_IN_PROGRESS", "STATUS_HALFTIME", "STATUS_END_PERIOD" -> GameState.LIVE
                         "STATUS_FINAL", "STATUS_FULL_TIME" -> GameState.FINAL
@@ -89,7 +93,7 @@ class EspnScheduleProvider(
                     }
                     add(Game(event.optString("id", "${competitionId}_$start"), competitionId, home, away, start, state,
                         homeObj.optString("score").toIntOrNull(), awayObj.optString("score").toIntOrNull(),
-                        status?.optString("detail"), status?.optString("shortDetail"), comp.optString("venue")))
+                        status?.optString("detail"), status?.optString("shortDetail"), comp.optString("venue"), round))
                 }
             }
         }
