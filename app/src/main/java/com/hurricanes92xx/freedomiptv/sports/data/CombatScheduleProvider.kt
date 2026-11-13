@@ -63,13 +63,21 @@ class CombatScheduleProvider(
                     "https://commons.wikimedia.org/wiki/Special:FilePath/Impact_Wrestling_Logo.svg")
             )
             CombatPromotion.UFC -> listOf(
-                event("ufc-334-prelims-2026", "UFC 334 Prelims", LocalDate.of(2026,11,14),17,
+                event("ufc-334-early-prelims-2026", "UFC 334 Early Prelims", LocalDate.of(2026,11,14),17,
+                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
+                event("ufc-334-prelims-2026", "UFC 334 Prelims", LocalDate.of(2026,11,14),19,
                     "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
                 event("ufc-334-2026", "UFC 334: Gane vs Hokit", LocalDate.of(2026,11,14),21,
                     "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
-                event("ufc-fn-2026-11-21", "UFC Fight Night: Prochazka vs Stirling", LocalDate.of(2026,11,21),10,
+                event("ufc-fn-2026-11-21-prelims", "UFC Fight Night: Prochazka vs Stirling Prelims", LocalDate.of(2026,11,21),10,
                     "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
-                event("ufc-fn-2026-12-05", "UFC Fight Night: Adesanya vs Magomedov", LocalDate.of(2026,12,5),21,
+                event("ufc-fn-2026-11-21", "UFC Fight Night: Prochazka vs Stirling", LocalDate.of(2026,11,21),13,
+                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
+                event("ufc-fn-2026-12-05-prelims", "UFC Fight Night: Adesanya vs Magomedov Prelims", LocalDate.of(2026,12,5),10,
+                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
+                event("ufc-fn-2026-12-05", "UFC Fight Night: Adesanya vs Magomedov", LocalDate.of(2026,12,5),13,
+                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
+                event("ufc-335-prelims-2026", "UFC 335 Prelims", LocalDate.of(2026,12,12),19,
                     "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
                 event("ufc-335-2026", "UFC 335: Oliveira vs Lopes", LocalDate.of(2026,12,12),21,
                     "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg")
