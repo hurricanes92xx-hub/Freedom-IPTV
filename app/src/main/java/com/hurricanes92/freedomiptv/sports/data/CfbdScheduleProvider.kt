@@ -95,9 +95,10 @@ class CfbdScheduleProvider(
                                 when (game.optInt("week", week)) {
                                     15 -> "FCS Playoffs • First Round"
                                     16 -> "FCS Playoffs • Second Round"
-                                    17 -> "FCS Playoffs • Quarterfinals"
-                                    18 -> "FCS Playoffs • Semifinals"
-                                    19 -> "FCS Playoffs • Championship"
+                                    17 -> "FCS Playoffs • Third Round"
+                                    18 -> "FCS Playoffs • Quarterfinals"
+                                    19 -> "FCS Playoffs • Semifinals"
+                                    20 -> "FCS Playoffs • Championship"
                                     else -> "FCS Playoffs"
                                 }
                             } else null
