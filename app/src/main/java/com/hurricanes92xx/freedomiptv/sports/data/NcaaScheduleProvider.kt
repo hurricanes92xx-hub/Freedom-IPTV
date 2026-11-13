@@ -25,37 +25,35 @@ class NcaaScheduleProvider(
  private val bracketRoutes=mapOf(
   Competition.NCAAM_D1 to BracketRoute("basketball-men","d1"), Competition.NCAAM_D2 to BracketRoute("basketball-men","d2"), Competition.NCAAM_D3 to BracketRoute("basketball-men","d3"),
   Competition.NCAAW_D1 to BracketRoute("basketball-women","d1"), Competition.NCAAW_D2 to BracketRoute("basketball-women","d2"), Competition.NCAAW_D3 to BracketRoute("basketball-women","d3"),
-  Competition.NCAAVB_W to BracketRoute("volleyball-women","d1"), Competition.NCAABASE to BracketRoute("baseball-men","d1"),
-  Competition.NCAAGYM_W to BracketRoute("gymnastics-women","d1")
+  Competition.NCAAVB_W to BracketRoute("volleyball-women","d1"), Competition.NCAABASE to BracketRoute("baseball-men","d1")
  )
  private fun bracketGames(root:JSONObject,c:Competition,from:Long,to:Long):List<Game>{
   val out=mutableListOf<Game>()
-  fun walk(value:Any?,inheritedRound:String?=null){
-   when(value){
-    is org.json.JSONArray -> { for(i in 0 until value.length()) walk(value.opt(i),inheritedRound) }
-    is JSONObject -> {
-     val round=listOf("round","roundName","roundTitle","bracketRound","name","title").firstNotNullOfOrNull { key -> value.optString(key).takeIf{it.isNotBlank()&&it!="null"} } ?: inheritedRound
-     val home=value.optJSONObject("home")?:value.optJSONObject("homeTeam")?:value.optJSONObject("team1")
-     val away=value.optJSONObject("away")?:value.optJSONObject("awayTeam")?:value.optJSONObject("team2")
-     if(home!=null&&away!=null){
-      val homeName=listOf("name","teamName","displayName","school").firstNotNullOfOrNull{home.optString(it).takeIf(String::isNotBlank)}
-      val awayName=listOf("name","teamName","displayName","school").firstNotNullOfOrNull{away.optString(it).takeIf(String::isNotBlank)}
-      val date=listOf("startDate","startTime","date","gameDate","scheduled").firstNotNullOfOrNull{value.optString(it).takeIf(String::isNotBlank)}
-      val millis=runCatching{Instant.parse(date).toEpochMilli()}.getOrDefault(0L)
-      if(homeName!=null&&awayName!=null&&millis in from..to){
-       fun makeTeam(obj:JSONObject,name:String)=Team(obj.optString("id").ifBlank{obj.optString("teamId").ifBlank{name}},name,obj.optString("shortName").ifBlank{null},obj.optString("logo").ifBlank{null},c.id)
-       val status=value.optString("gameState").lowercase()
-       val state=when{status.contains("live")||status.contains("progress")->GameState.LIVE;status.contains("final")||status.contains("complete")->GameState.FINAL;else->GameState.SCHEDULED}
-       val id=value.optString("gameID").ifBlank{value.optString("id").ifBlank{c.id+"_"+millis+"_"+homeName+"_"+awayName}}
-       out.add(Game(id,c.id,makeTeam(home,homeName),makeTeam(away,awayName),millis,state,home.optString("score").toIntOrNull(),away.optString("score").toIntOrNull(),null,null,value.optString("venue").ifBlank{null},round))
-      }
-     }
-     val keys=value.keys()
-     while(keys.hasNext()){val key=keys.next();val child=value.opt(key);if(child is JSONObject||child is org.json.JSONArray)walk(child,round)}
-    }
+  val championships=root.optJSONArray("championships")?:org.json.JSONArray()
+  for(ci in 0 until championships.length()){
+   val championship=championships.optJSONObject(ci)?:continue
+   val games=championship.optJSONArray("games")?:continue
+   for(gi in 0 until games.length()){
+    val game=games.optJSONObject(gi)?:continue
+    val teams=game.optJSONArray("teams")?:continue
+    if(teams.length()<2)continue
+    val first=teams.optJSONObject(0)?:continue
+    val second=teams.optJSONObject(1)?:continue
+    val home=if(first.optBoolean("isHome"))first else if(second.optBoolean("isHome"))second else second
+    val away=if(home===first)second else first
+    val homeName=home.optString("nameShort").ifBlank{home.optString("nameFull")}
+    val awayName=away.optString("nameShort").ifBlank{away.optString("nameFull")}
+    val epoch=game.optLong("startTimeEpoch",0L)
+    val millis=if(epoch>0)if(epoch<100000000000L)epoch*1000 else epoch else 0L
+    if(homeName.isBlank()||awayName.isBlank()||millis !in from..to)continue
+    fun team(obj:JSONObject,name:String)=Team(obj.optString("seoname").ifBlank{name},name,obj.optString("nameShort").ifBlank{null},obj.optString("logoUrl").ifBlank{null},c.id)
+    val status=game.optString("statusCodeDisplay").ifBlank{game.optString("gameState")}.lowercase()
+    val state=when{status.contains("live")||status=="p"||status=="in progress"->GameState.LIVE;status.contains("final")||status=="f"||status=="complete"->GameState.FINAL;else->GameState.SCHEDULED}
+    val id=game.optString("contestId").ifBlank{game.optString("gameID").ifBlank{c.id+"_"+millis+"_"+homeName+"_"+awayName}}
+    val round=game.optString("roundName").ifBlank{game.optString("round").ifBlank{"NCAA Tournament"}}
+    out.add(Game(id,c.id,team(home,homeName),team(away,awayName),millis,state,home.optInt("score").takeIf{home.has("score")},away.optInt("score").takeIf{away.has("score")},game.optString("currentPeriod").ifBlank{null},game.optString("contestClock").ifBlank{null},null,round))
    }
   }
-  walk(root)
   return out.distinctBy{it.id}.sortedBy{it.startUtcMillis}
  }
  private suspend fun brackets(c:Competition,from:Long,to:Long):List<Game>{
