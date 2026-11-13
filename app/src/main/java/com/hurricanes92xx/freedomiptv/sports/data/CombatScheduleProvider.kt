@@ -31,23 +31,20 @@ class CombatScheduleProvider(
         val start = Instant.ofEpochMilli(fromUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
         val end = Instant.ofEpochMilli(toUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
         val days = generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }.take(31).toList()
-        // Bound concurrency: faster than 31 serial requests, without flooding the free API.
-        days.chunked(4).flatMap { batch ->
-            batch.map { day -> async(Dispatchers.IO) {
-                if (promotion == CombatPromotion.UFC) {
-                    val espn = runCatching { fetchEspnUfc(day) }.getOrDefault(emptyList())
-                    if (espn.isNotEmpty()) espn else {
-                        val date = day.format(DateTimeFormatter.ISO_LOCAL_DATE)
-                        val url = "https://www.thesportsdb.com/api/v1/json/$apiKey/eventsday.php?d=$date&s=" + URLEncoder.encode("Fighting", "UTF-8")
-                        runCatching { fetch(url, promotion) }.getOrDefault(emptyList())
-                    }
-                } else {
+        // ESPN's scoreboard accepts a date range. One range request is faster and keeps
+        // UFC event dates/times sourced from ESPN instead of a hand-maintained calendar.
+        val schedule = if (promotion == CombatPromotion.UFC) {
+            runCatching { fetchEspnUfcRange(start, end) }.getOrDefault(emptyList())
+        } else {
+            days.chunked(4).flatMap { batch ->
+                batch.map { day -> async(Dispatchers.IO) {
                     val date = day.format(DateTimeFormatter.ISO_LOCAL_DATE)
                     val url = "https://www.thesportsdb.com/api/v1/json/$apiKey/eventsday.php?d=$date&s=" + URLEncoder.encode("Fighting", "UTF-8")
                     runCatching { fetch(url, promotion) }.getOrDefault(emptyList())
-                }
-            } }.awaitAll().flatten()
-        }.filter { it.startUtcMillis in fromUtcMillis..toUtcMillis }
+                } }.awaitAll().flatten()
+            }
+        }
+        schedule.filter { it.startUtcMillis in fromUtcMillis..toUtcMillis }
             .plus(weeklyTelevision(promotion, start, end).filter { it.startUtcMillis in fromUtcMillis..toUtcMillis })
             .plus(officialSpecials(promotion).filter { it.startUtcMillis in fromUtcMillis..toUtcMillis })
             .distinctBy { it.id }.sortedBy { it.startUtcMillis }
@@ -73,26 +70,9 @@ class CombatScheduleProvider(
                 event("tna-destination-x-2026", "TNA Destination X 2026", LocalDate.of(2026,11,15),19,
                     "https://commons.wikimedia.org/wiki/Special:FilePath/Impact_Wrestling_Logo.svg")
             )
-            CombatPromotion.UFC -> listOf(
-                event("ufc-334-early-prelims-2026", "UFC 334 Early Prelims", LocalDate.of(2026,11,14),17,
-                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
-                event("ufc-334-prelims-2026", "UFC 334 Prelims", LocalDate.of(2026,11,14),19,
-                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
-                event("ufc-334-2026", "UFC 334: Gane vs Hokit", LocalDate.of(2026,11,14),21,
-                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
-                event("ufc-fn-2026-11-21-prelims", "UFC Fight Night: Prochazka vs Stirling Prelims", LocalDate.of(2026,11,21),10,
-                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
-                event("ufc-fn-2026-11-21", "UFC Fight Night: Prochazka vs Stirling", LocalDate.of(2026,11,21),14,
-                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
-                event("ufc-fn-2026-12-05-prelims", "UFC Fight Night: Adesanya vs Magomedov Prelims", LocalDate.of(2026,12,5),10,
-                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
-                event("ufc-fn-2026-12-05", "UFC Fight Night: Adesanya vs Magomedov", LocalDate.of(2026,12,5),13,
-                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
-                event("ufc-335-prelims-2026", "UFC 335 Prelims", LocalDate.of(2026,12,12),19,
-                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg"),
-                event("ufc-335-2026", "UFC 335: Oliveira vs Lopes", LocalDate.of(2026,12,12),21,
-                    "https://commons.wikimedia.org/wiki/Special:FilePath/UFC_logo.svg")
-            )
+            // UFC dates and times are exclusively ESPN scoreboard data; no manually
+            // entered future cards that can drift when the promotion changes its schedule.
+            CombatPromotion.UFC -> emptyList()
             else -> emptyList()
         }
     }
@@ -122,10 +102,10 @@ class CombatScheduleProvider(
         return out
     }
 
-    /** ESPN UFC scoreboard contains each bout as an event competition. */
-    private fun fetchEspnUfc(day: LocalDate): List<CombatEvent> {
-        val date = day.format(DateTimeFormatter.BASIC_ISO_DATE)
-        val request = Request.Builder().url("https://site.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard?dates=$date")
+    /** ESPN scoreboard range query: dates=YYYYMMDD-YYYYMMDD. */
+    private fun fetchEspnUfcRange(start: LocalDate, end: LocalDate): List<CombatEvent> {
+        val dates = "${start.format(DateTimeFormatter.BASIC_ISO_DATE)}-${end.format(DateTimeFormatter.BASIC_ISO_DATE)}"
+        val request = Request.Builder().url("https://site.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard?dates=$dates")
             .header("User-Agent", "FreedomIPTV/1.0").build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) return emptyList()
