@@ -45,7 +45,7 @@ class NcaaScheduleProvider(
       fun team(o:JSONObject,side:String)=Team(o.optString("id").ifBlank{o.optString("teamId").ifBlank{o.optString("name")}},o.optString("name").ifBlank{o.optString("teamName")},o.optString("shortName").ifBlank{null},o.optString("logo").ifBlank{o.optString("logoUrl").ifBlank{null}},competition.id)
       val status=game.optString("gameState").lowercase()
       val state=when{status.contains("live")||status.contains("progress")->GameState.LIVE;status.contains("final")||status.contains("complete")->GameState.FINAL;status.contains("postpon")->GameState.POSTPONED;else->GameState.SCHEDULED}
-      out.add(Game(game.optString("gameID").ifBlank{game.optString("id")},competition.id,team(home,"home"),team(away,"away"),kickoff,state,home.optString("score").toIntOrNull(),away.optString("score").toIntOrNull(),game.optString("currentPeriod").ifBlank{null},game.optString("contestClock").ifBlank{null},game.optString("venue").ifBlank{null}))
+      out.add(Game(game.optString("gameID").ifBlank{game.optString("id")},competition.id,team(home,"home"),team(away,"away"),kickoff,state,home.optString("score").toIntOrNull(),away.optString("score").toIntOrNull(),game.optString("currentPeriod").ifBlank{null},game.optString("contestClock").ifBlank{null},game.optString("venue").ifBlank{null},game.optString("bracketRound").takeIf{it.isNotBlank() && it!="0"}?.let{"Round $it"} ?: game.optString("roundDescription").ifBlank{null} ?: game.optString("finalMessage").takeIf{it.contains("champion",true)||it.contains("championship",true)}?.let{"Championship"}))
      }
     }
    }
