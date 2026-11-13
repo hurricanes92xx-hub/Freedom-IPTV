@@ -18,17 +18,22 @@ class RoadToNationalsGymnasticsProvider(
 ) {
     private val base = "https://www.roadtonationals.com/api/women"
     private val teamCache = mutableMapOf<Int, Set<String>>()
+    private data class SeasonCache(val fetchedAt: Long, val games: List<Game>)
+    private val seasonCache = mutableMapOf<Int, SeasonCache>()
+    private val seasonTtlMillis = 6 * 60 * 60_000L
 
     suspend fun schedule(fromUtcMillis: Long, toUtcMillis: Long): List<Game> = withContext(Dispatchers.IO) {
         if (toUtcMillis < fromUtcMillis) return@withContext emptyList()
         val firstYear = Instant.ofEpochMilli(fromUtcMillis).atZone(ZoneOffset.UTC).year
         val lastYear = Instant.ofEpochMilli(toUtcMillis).atZone(ZoneOffset.UTC).year
         (firstYear..lastYear).flatMap { year ->
-            runCatching { season(year, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
+            runCatching { cachedSeason(year).filter { it.startUtcMillis in fromUtcMillis..toUtcMillis } }.getOrDefault(emptyList())
         }.distinctBy { it.id }.sortedBy { it.startUtcMillis }
     }
 
-    private fun season(year: Int, from: Long, to: Long): List<Game> {
+    private fun cachedSeason(year: Int): List<Game> { val now = System.currentTimeMillis(); seasonCache[year]?.takeIf { now - it.fetchedAt < seasonTtlMillis }?.let { return it.games }; val games = season(year); seasonCache[year] = SeasonCache(now, games); return games }
+
+    private fun season(year: Int): List<Game> {
         val d1 = d1Teams(year)
         val root = getJson("$base/schedule/$year/1")
         val out = mutableListOf<Game>()
@@ -41,11 +46,7 @@ class RoadToNationalsGymnasticsProvider(
                 val m = meets.optJSONObject(i) ?: continue
                 val meetDate = m.optString("d").ifBlank { date }
                 val time = m.optString("time").ifBlank { "12:00:00" }
-                val epoch = runCatching {
-                    java.time.LocalDateTime.parse("${meetDate}T$time")
-                        .atZone(java.time.ZoneId.of("America/New_York")).toInstant().toEpochMilli()
-                }.getOrDefault(0L)
-                if (epoch !in from..to) continue
+                val epoch = parseEasternKickoff(meetDate, time) ?: continue
                 val homeNames = split(m.optString("home_teams"))
                 val awayNames = split(m.optString("away_teams"))
                 val participants = homeNames + awayNames
@@ -87,6 +88,14 @@ class RoadToNationalsGymnasticsProvider(
             return JSONObject(response.body?.string().orEmpty())
         }
     }
+    private fun parseEasternKickoff(date: String, rawTime: String): Long? = runCatching {
+        val value = rawTime.trim().uppercase().replace(Regex("\\s+"), " ")
+        val time = if (value.endsWith("AM") || value.endsWith("PM"))
+            java.time.LocalTime.parse(value, java.time.format.DateTimeFormatter.ofPattern("h:mm a"))
+        else java.time.LocalTime.parse(value, java.time.format.DateTimeFormatter.ofPattern("H:mm[:ss]"))
+        java.time.LocalDate.parse(date).atTime(time).atZone(java.time.ZoneId.of("America/New_York")).toInstant().toEpochMilli()
+    }.getOrNull()
+
     private fun split(value: String) = decode(value).split(",").map(String::trim).filter(String::isNotBlank)
     private fun decode(value: String) = value.replace("&amp;", "&").replace("&#39;", "'").replace("&quot;", "\"").trim()
     private fun slug(value: String) = value.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')
