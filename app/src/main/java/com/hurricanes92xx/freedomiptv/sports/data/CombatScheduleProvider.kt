@@ -40,7 +40,22 @@ class CombatScheduleProvider(
             } }.awaitAll().flatten()
         }.filter { it.startUtcMillis in fromUtcMillis..toUtcMillis }
             .plus(weeklyTelevision(promotion, start, end).filter { it.startUtcMillis in fromUtcMillis..toUtcMillis })
+            .plus(officialSpecials(promotion).filter { it.startUtcMillis in fromUtcMillis..toUtcMillis })
             .distinctBy { it.id }.sortedBy { it.startUtcMillis }
+    }
+
+    /** Confirmed major cards supplement sparse third-party Fighting listings. Keep only official announced dates. */
+    private fun officialSpecials(promotion: CombatPromotion): List<CombatEvent> {
+        val zone = ZoneId.of("America/New_York")
+        fun event(id: String, title: String, date: LocalDate, hour: Int, poster: String? = null) =
+            CombatEvent(id, promotion.id, title, date.atTime(hour, 0).atZone(zone).toInstant().toEpochMilli(), poster)
+        return when (promotion) {
+            CombatPromotion.WWE -> listOf(
+                event("wwe-survivor-series-2026", "WWE Survivor Series: WarGames 2026", LocalDate.of(2026,11,28),18,
+                    "https://commons.wikimedia.org/wiki/Special:FilePath/WWE_Survivor_Series_logo.svg")
+            )
+            else -> emptyList()
+        }
     }
 
     /** Weekly TV slots supplement omitted event listings; these are broadcast times, not venue bell times. */
