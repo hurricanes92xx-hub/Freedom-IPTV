@@ -3,6 +3,8 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+val cfbdKey = (System.getenv("CFBD_API_KEY") ?: "").replace("\\", "\\\\").replace("\"", "\\\"")
+
 android {
     namespace = "com.hurricanes92.freedomiptv"
     compileSdk = 36
