@@ -93,8 +93,11 @@ class NcaaScheduleProvider(
      val root=JSONObject(response.body?.string().orEmpty());val games=root.optJSONArray("games")?:return@use
      for(i in 0 until games.length()){
       val g=games.optJSONObject(i)?:continue;val game=g.optJSONObject("game")?:g
-      val teams=game.optJSONObject("teams")?:g.optJSONObject("teams")?:continue
-      val away=teams.optJSONObject("away")?:continue;val home=teams.optJSONObject("home")?:continue
+      // NCAA scoreboard payloads expose home/away directly under "game";
+      // some alternate payloads wrap them in "teams". Support both shapes.
+      val teams=game.optJSONObject("teams")?:g.optJSONObject("teams")
+      val away=teams?.optJSONObject("away")?:game.optJSONObject("away")?:g.optJSONObject("away")?:continue
+      val home=teams?.optJSONObject("home")?:game.optJSONObject("home")?:g.optJSONObject("home")?:continue
       val kickoff=runCatching{Instant.parse(game.optString("startTime").ifBlank{game.optString("startDate")}).toEpochMilli()}.getOrDefault(0L)
       if(kickoff !in fromUtcMillis..toUtcMillis)continue
       fun team(o:JSONObject,side:String)=Team(o.optString("id").ifBlank{o.optString("teamId").ifBlank{o.optString("name")}},o.optString("name").ifBlank{o.optString("teamName")},o.optString("shortName").ifBlank{null},o.optString("logo").ifBlank{o.optString("logoUrl").ifBlank{null}},competition.id)
