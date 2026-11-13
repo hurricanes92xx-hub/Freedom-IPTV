@@ -44,7 +44,7 @@ class SportsScheduleRepository(
             // Combat events are available through combatEvents(); never fabricate team games.
             return@coroutineScope emptyList()
         }
-        val primary = async { if (competition == Competition.NCAAF_FCS) runCatching { cfbd.schedule(fromUtcMillis, toUtcMillis, Competition.NCAAF_FCS) }.getOrDefault(emptyList()).ifEmpty { runCatching { espn.schedule(competition, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList()) } else runCatching { espn.schedule(competition, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList()) }
+        val primary = async { if (competition == Competition.NCAAF_FCS) runCatching { cfbd.schedule(fromUtcMillis, toUtcMillis, Competition.NCAAF_FCS) }.getOrDefault(emptyList()) else runCatching { espn.schedule(competition, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList()) }
         // NCAA's alternate feed supplements ESPN instead of being hidden whenever ESPN has partial data.
         val college = async {
             if (competition.college) runCatching { ncaa.schedule(competition, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
