@@ -18,8 +18,8 @@ This is a provider/code audit, not a claim that every future event has been live
 
 | Competition | Current schedule source | Tournament handling / caveat |
 |---|---|---|
-| FBS | ESPN + CFBD | CFP/bowls depend on ESPN season/event metadata; CFBD seasonType=both |
-| FCS | ESPN | Bracket rounds depend on ESPN event metadata |
+| FBS | ESPN + CFBD | ESPN postseason season type and expanded event/notes round extraction; CFBD seasonType=both |
+| FCS | ESPN | Postseason season type plus expanded event/notes round extraction (specific round when exposed; otherwise generic postseason) |
 | Men's basketball D1 | ESPN + NCAA scoreboard + NCAA bracket | Bracket position IDs mapped First Four through Championship |
 | Men's basketball D2/D3 | NCAA scoreboard + NCAA bracket | 2025 bracket positions mapped through First Round, Second Round, Regional Semifinal/Final, National Semifinal, Championship |
 | Women's basketball D1 | ESPN + NCAA scoreboard + NCAA bracket | Bracket position IDs mapped First Four through Championship |
