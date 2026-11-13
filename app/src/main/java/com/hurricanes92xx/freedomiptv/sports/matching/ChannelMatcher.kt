@@ -35,7 +35,7 @@ object ChannelMatcher {
         return channels.mapNotNull { channel ->
             val name = normalize(channel.name)
             val networkExact = name in accepted || accepted.any { name == it }
-            val networkBoundary = accepted.any { name.startsWith("$it ") || name.endsWith(" $it") || name.contains(" $it ") }
+            val networkBoundary = accepted.any { alias -> (name.startsWith(alias + " ") && name.removePrefix(alias + " ").firstOrNull()?.isDigit() != true) || name.endsWith(" " + alias) || name.contains(" " + alias + " ") }
             val hits = eventTerms.map(::normalize).filter { it.length >= 3 && name.contains(it) }.distinct()
             var score = when { networkExact -> 90; networkBoundary -> 72; else -> 0 }
             val reasons = mutableListOf<String>()
