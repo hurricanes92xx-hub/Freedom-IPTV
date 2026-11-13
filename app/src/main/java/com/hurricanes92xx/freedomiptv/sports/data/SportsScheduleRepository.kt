@@ -106,6 +106,12 @@ class SportsScheduleRepository(
         merged
     }
 
+    /** Event/bout schedule for combat promotions; intentionally separate from team-score Game rows. */
+    suspend fun combatEvents(promotion: CombatPromotion, fromUtcMillis: Long, toUtcMillis: Long, bypassCache: Boolean = false): List<CombatEvent> {
+        if (toUtcMillis < fromUtcMillis) return emptyList()
+        return runCatching { combat.events(promotion, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
+    }
+
     suspend fun liveScores(competition: Competition): List<Game> {
         val espnLive = runCatching { espn.liveScores(competition) }.getOrDefault(emptyList())
         if (espnLive.isNotEmpty()) return espnLive
