@@ -22,7 +22,7 @@ class SportsScheduleRepository(
     private val cacheTtlMillis = 90_000L
     private val mlb = MlbStatsApiProvider()
     private val nhl = NhLWebApiProvider()
-    private val cfbd = CfbdScheduleProvider(apiKey = "r9AL0zagSt7NFDttDhrm7g/yOLqur8b6ktgGbO+VRT1eY2HFVGwr04JMiBYwsrjK")
+    private val cfbd = CfbdScheduleProvider(apiKey = System.getenv("CFBD_API_KEY").orEmpty())
 
     suspend fun schedule(competition: Competition, fromUtcMillis: Long, toUtcMillis: Long, bypassCache: Boolean = false): List<Game> = coroutineScope {
         if (toUtcMillis < fromUtcMillis) return@coroutineScope emptyList()
