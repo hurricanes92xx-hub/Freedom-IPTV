@@ -42,7 +42,7 @@ class RoadToNationalsGymnasticsProvider(
                 val meetDate = m.optString("d").ifBlank { date }
                 val time = m.optString("time").ifBlank { "12:00:00" }
                 val epoch = runCatching {
-                    java.time.LocalDateTime.parse("$meetDateT$time")
+                    java.time.LocalDateTime.parse("${meetDate}T$time")
                         .atZone(java.time.ZoneId.of("America/New_York")).toInstant().toEpochMilli()
                 }.getOrDefault(0L)
                 if (epoch !in from..to) continue
@@ -60,7 +60,7 @@ class RoadToNationalsGymnasticsProvider(
                     home = Team("rtn-${slug(host)}", host, host, null, Competition.NCAAGYM_W.id),
                     away = Team("rtn-${slug(away)}", away, away, null, Competition.NCAAGYM_W.id),
                     startUtcMillis = epoch, state = GameState.SCHEDULED,
-                    venue = decode(m.optString("location")).ifBlank { null }, postseasonRound = round
+                    venue = decode(m.optString("location")).takeIf { it.isNotBlank() }, postseasonRound = round
                 )
             }
         }
