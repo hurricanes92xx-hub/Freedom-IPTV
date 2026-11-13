@@ -62,7 +62,8 @@ class NhLWebApiProvider(
                                     kickoff, state,
                                     game.optInt("homeScore").takeIf { !game.isNull("homeScore") },
                                     game.optInt("awayScore").takeIf { !game.isNull("awayScore") },
-                                    game.optString("gameState"), null, null
+                                    game.optString("gameState"), null, null,
+                                    if (game.optInt("gameType", 0) == 3) game.optString("seriesTitle").takeIf { it.isNotBlank() } ?: "Playoffs" else null
                                 ))
                             }
                         }
