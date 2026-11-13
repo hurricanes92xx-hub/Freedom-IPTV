@@ -96,6 +96,58 @@ jobs:
           if not selected:
               print("No calendar weeks overlap this window (likely offseason); endpoint authentication still verified.")
           PY
+      - name: CFBD FCS postseason rounds and labels smoke (2025)
+        env:
+          CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json, os, time, urllib.request, urllib.error
+
+          key = os.environ.get("CFBD_API_KEY", "").strip()
+          if not key:
+              raise SystemExit("CFBD_API_KEY repository secret is missing.")
+          headers = {"Authorization": "Bearer " + key, "Accept": "application/json"}
+          url = "https://api.collegefootballdata.com/games?year=2025&seasonType=postseason&classification=fcs"
+          last_error = None
+          for attempt in range(5):
+              try:
+                  req = urllib.request.Request(url, headers=headers)
+                  with urllib.request.urlopen(req, timeout=45) as response:
+                      games = json.loads(response.read())
+                  break
+              except (TimeoutError, urllib.error.URLError, urllib.error.HTTPError) as exc:
+                  last_error = exc
+                  if isinstance(exc, urllib.error.HTTPError) and exc.code not in (429, 500, 502, 503, 504):
+                      raise
+                  if attempt < 4:
+                      delay = min(30, 3 * 2 ** attempt)
+                      print(f"CFBD FCS postseason transient error ({exc}); retrying in {delay}s")
+                      time.sleep(delay)
+          else:
+              raise RuntimeError(f"CFBD FCS postseason failed after retries: {last_error}")
+          if not isinstance(games, list) or len(games) < 25:
+              raise RuntimeError(f"Expected full 2025 FCS playoff slate; got {len(games) if isinstance(games,list) else type(games)}")
+          rounds = {
+              1: "FCS Playoffs • First Round", 15: "FCS Playoffs • First Round",
+              2: "FCS Playoffs • Second Round", 16: "FCS Playoffs • Second Round",
+              3: "FCS Playoffs • Quarterfinals", 17: "FCS Playoffs • Quarterfinals",
+              4: "FCS Playoffs • Semifinals", 18: "FCS Playoffs • Semifinals",
+              5: "FCS Playoffs • Championship", 19: "FCS Playoffs • Championship",
+          }
+          observed = set()
+          for game in games:
+              week = int(game.get("week") or 0)
+              label = rounds.get(week)
+              if label is None:
+                  raise RuntimeError(f"Unexpected FCS postseason week {week}: {game}")
+              if not game.get("homeTeam") or not game.get("awayTeam") or not game.get("startDate"):
+                  raise RuntimeError(f"Incomplete FCS playoff game record: {game}")
+              observed.add(label)
+          expected = set(rounds.values())
+          if observed != expected:
+              raise RuntimeError(f"FCS playoff round coverage mismatch: missing {sorted(expected-observed)}")
+          print(f"CFBD 2025 FCS postseason OK: {len(games)} games, all five round labels mapped: {sorted(observed)}")
+          PY
       - name: NCAA postseason bracket API smoke test (2025)
         run: |
           python - <<'PY'
