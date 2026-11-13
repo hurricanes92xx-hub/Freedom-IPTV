@@ -106,10 +106,28 @@ class SportsScheduleRepository(
         merged
     }
 
+    private data class CachedCombat(val savedAt: Long, val events: List<CombatEvent>)
+    private val combatCache = java.util.concurrent.ConcurrentHashMap<String, CachedCombat>()
+    private val combatCacheTtlMillis = 120_000L
+
     /** Event/bout schedule for combat promotions; intentionally separate from team-score Game rows. */
     suspend fun combatEvents(promotion: CombatPromotion, fromUtcMillis: Long, toUtcMillis: Long, bypassCache: Boolean = false): List<CombatEvent> {
         if (toUtcMillis < fromUtcMillis) return emptyList()
-        return runCatching { combat.events(promotion, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
+        val key = "${promotion.name}:$fromUtcMillis:$toUtcMillis"
+        val now = System.currentTimeMillis()
+        if (!bypassCache) combatCache[key]?.let { cached ->
+            if (now - cached.savedAt < combatCacheTtlMillis) return cached.events
+            combatCache.remove(key, cached)
+        }
+        val loaded = runCatching { combat.events(promotion, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
+        if (!bypassCache) {
+            combatCache[key] = CachedCombat(now, loaded)
+            if (combatCache.size > 80) {
+                combatCache.entries.removeIf { now - it.value.savedAt >= combatCacheTtlMillis }
+                if (combatCache.size > 80) combatCache.entries.sortedBy { it.value.savedAt }.take(combatCache.size - 80).forEach { combatCache.remove(it.key, it.value) }
+            }
+        }
+        return loaded
     }
 
     suspend fun liveScores(competition: Competition): List<Game> {
