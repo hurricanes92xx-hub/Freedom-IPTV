@@ -143,16 +143,28 @@ jobs:
       - name: NCAA baseball dated scoreboard vs bracket smoke (2025 CWS)
         run: |
           python - <<'PY'
-          import datetime, json, urllib.request
+          import datetime, json, time, urllib.request, urllib.error
 
           base = "https://ncaa-api.henrygd.me"
           headers = {"User-Agent": "FreedomIPTV-CI/1.0"}
           def get(path):
-              req = urllib.request.Request(base + path, headers=headers)
-              with urllib.request.urlopen(req, timeout=20) as response:
-                  if response.status != 200:
-                      raise RuntimeError(f"HTTP {response.status}: {path}")
-                  return json.loads(response.read())
+              last_error = None
+              for attempt in range(5):
+                  try:
+                      req = urllib.request.Request(base + path, headers=headers)
+                      with urllib.request.urlopen(req, timeout=30) as response:
+                          if response.status != 200:
+                              raise RuntimeError(f"HTTP {response.status}: {path}")
+                          return json.loads(response.read())
+                  except (TimeoutError, urllib.error.URLError, urllib.error.HTTPError) as exc:
+                      last_error = exc
+                      if isinstance(exc, urllib.error.HTTPError) and exc.code not in (429, 500, 502, 503, 504):
+                          raise
+                      if attempt < 4:
+                          delay = min(20, 2 ** attempt * 2)
+                          print(f"NCAA transient error {attempt + 1}/5 ({exc}); retrying in {delay}s")
+                          time.sleep(delay)
+              raise RuntimeError(f"NCAA request failed after 5 attempts for {path}: {last_error}")
 
           bracket = get("/brackets/baseball/d1/2025")
           championships = bracket.get("championships") or []
