@@ -18,7 +18,9 @@ class SportsHubCache(context:Context) {
   return SportsHubSnapshot(events,prefs.getLong("updated",0L).takeIf{it>0},false,prefs.getString("error",null))
  }
  fun write(events:List<HubEventCard>,updatedAtUtcMillis:Long=System.currentTimeMillis()) {
-  val a=JSONArray(); events.forEach { e -> a.put(JSONObject().put("id",e.id).put("title",e.title).put("subtitle",e.subtitle).put("start",e.startUtcMillis).put("sport",e.sportId).put("presentation",e.presentation.name).put("home",e.homeName).put("away",e.awayName).put("homeLogo",e.homeLogo).put("awayLogo",e.awayLogo).put("poster",e.posterUrl).put("network",e.network).put("channel",e.channelId).put("live",e.isLive).put("score",e.score).put("status",e.status)) }
+  // Deduplicate and cap persistence so oversized provider responses cannot bloat local storage.
+  val ordered = events.distinctBy { it.id }.sortedWith(compareByDescending<HubEventCard> { it.isLive }.thenBy { it.startUtcMillis }).take(250)
+  val a=JSONArray(); ordered.forEach { e -> a.put(JSONObject().put("id",e.id).put("title",e.title).put("subtitle",e.subtitle).put("start",e.startUtcMillis).put("sport",e.sportId).put("presentation",e.presentation.name).put("home",e.homeName).put("away",e.awayName).put("homeLogo",e.homeLogo).put("awayLogo",e.awayLogo).put("poster",e.posterUrl).put("network",e.network).put("channel",e.channelId).put("live",e.isLive).put("score",e.score).put("status",e.status)) }
   prefs.edit().putString("events",a.toString()).putLong("updated",updatedAtUtcMillis).remove("error").apply()
  }
  fun setError(message:String){prefs.edit().putString("error",message.take(300)).apply()}
