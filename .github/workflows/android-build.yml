@@ -137,7 +137,11 @@ jobs:
               raise RuntimeError("RTN 2026 women's schedule has no meets")
           postseason = [m for m in meets if any(term in str(m.get("meet_desc", "")).lower()
                         for term in ("regional", "ncaa championships", "national championship"))]
-          current = get("/currentweek/2026").get("max", 0)
+          current_raw = get("/currentweek/2026").get("max", 0)
+          try:
+              current = int(current_raw or 0)
+          except (TypeError, ValueError):
+              current = 0
           weeks = list(range(current, max(0, current-16), -1)) + list(range(16, 0, -1))
           d1 = []
           for week in dict.fromkeys(w for w in weeks if w > 0):
