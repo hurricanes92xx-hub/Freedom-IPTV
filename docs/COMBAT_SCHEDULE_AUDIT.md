@@ -21,5 +21,5 @@
 - UFC Fight Night events expose prelim and main-card entries where announced.
 - PPV Countdown/pre-show entries are distinct from PPV main card.
 - Event title/date/poster/state can load without fabricated participant or bout data.
-- When card data is added, verify bout order and prelim/main-card grouping against official UFC event pages; identify the main event separately.
+- Verify ESPN competition order and main-event designation against official UFC cards; ESPN's scoreboard currently does not reliably label each bout as Early Prelims vs Prelims vs Main Card, so don't claim those segment assignments at bout level.
 - CI checks stable parsing/labeling logic and does not require a live event to exist during an offseason.
