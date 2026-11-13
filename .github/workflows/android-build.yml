@@ -206,6 +206,35 @@ jobs:
               if d1: break
           print(f"RTN 2026 schedule OK: {len(meets)} meets, {len(postseason)} postseason labels; D1 ranking rows={len(d1)} (week={week if d1 else 'offseason unavailable'})")
           PY
+      - name: ESPN sport-feed seasonality smoke (schedule schema)
+        run: |
+          python - <<'PY'
+          import datetime, json, urllib.request
+
+          feeds = {
+              "NFL": ("football", "nfl"), "FBS/FCS": ("football", "college-football"),
+              "NCAA men's basketball D1": ("basketball", "mens-college-basketball"),
+              "NCAA women's basketball D1": ("basketball", "womens-college-basketball"),
+              "NCAA women's volleyball": ("volleyball", "womens-college-volleyball"),
+              "NCAA baseball": ("baseball", "college-baseball"),
+              "NCAA women's gymnastics": ("gymnastics", "womens-college-gymnastics"),
+              "NBA": ("basketball", "nba"), "WNBA": ("basketball", "wnba"),
+              "MLB": ("baseball", "mlb"), "NHL": ("hockey", "nhl"),
+              "MLS": ("soccer", "usa.1"), "EPL": ("soccer", "eng.1"),
+              "UCL": ("soccer", "uefa.champions"),
+          }
+          day = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d")
+          for name, (sport, league) in feeds.items():
+              url = f"https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/scoreboard?dates={day}"
+              req = urllib.request.Request(url, headers={"User-Agent":"FreedomIPTV-CI/1.0"})
+              with urllib.request.urlopen(req, timeout=20) as response:
+                  if response.status != 200:
+                      raise RuntimeError(f"{name}: ESPN HTTP {response.status}")
+                  payload = json.loads(response.read())
+              if not isinstance(payload.get("events"), list):
+                  raise RuntimeError(f"{name}: ESPN scoreboard missing events array")
+              print(f"{name}: feed OK ({len(payload['events'])} events today; zero is valid in offseason)")
+          PY
       - name: Build debug APK
         env:
           CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
