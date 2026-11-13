@@ -456,6 +456,22 @@ private fun FreedomApp() {
                                                     Text(event.state.name, color = if(event.state == GameState.LIVE) FreedomRed else Color.LightGray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                                 }
                                             }
+                                            if (event.bouts.isNotEmpty()) {
+                                                Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                    Text("FIGHT CARD • ${event.bouts.size} BOUTS", color = FreedomRed, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                    event.bouts.forEach { bout ->
+                                                        Column(Modifier.fillMaxWidth().background(Color(0xFF0B1018), RoundedCornerShape(8.dp)).padding(9.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                                Text(bout.cardSegment?.uppercase() ?: "BOUT", color = Color(0xFF9BA8BA), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                                                Spacer(Modifier.weight(1f))
+                                                                if (bout.isMainEvent) Text("★ MAIN EVENT", color = Color(0xFFFFD166), fontSize = 9.sp, fontWeight = FontWeight.Black)
+                                                            }
+                                                            Text(bout.participants.joinToString("  vs  "), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                                            bout.weightClass?.takeIf { it.isNotBlank() }?.let { Text(it, color = Color.LightGray, fontSize = 10.sp) }
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
