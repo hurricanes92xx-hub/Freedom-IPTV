@@ -15,6 +15,12 @@
 4. **Time zones:** The local supplements use America/New_York and TheSportsDB event times are currently parsed as UTC. Provider feed time semantics should be validated per event to avoid display shifts.
 5. **Offseason and quiet weeks:** no combat event on a date is normal; recurring weekly wrestling broadcasts are the exception.
 
+## Next audit target: ESPN UFC bout-card coverage
+
+- Event-level UFC scoreboard parsing is in place, but fight-by-fight rows remain a separate coverage gap.
+- Audit ESPN competition ordering, participant names, and event main-event designation; preserve source order and avoid inventing prelim segment labels.
+- Follow up with a bounded bout-card model/UI only when source data reliably distinguishes bouts and broadcast segments.
+
 ## Acceptance checks
 
 - UFC events expose separate Early Prelims, Prelims, and Main Card schedule entries whenever the official broadcast has all three.
