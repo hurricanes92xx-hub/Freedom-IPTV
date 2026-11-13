@@ -83,6 +83,41 @@ jobs:
           if not selected:
               print("No calendar weeks overlap this window (likely offseason); endpoint authentication still verified.")
           PY
+      - name: NCAA postseason bracket API smoke test (2025)
+        run: |
+          python - <<'PY'
+          import json, urllib.request
+
+          routes = {
+              "men's basketball D1": "basketball-men/d1",
+              "men's basketball D2": "basketball-men/d2",
+              "men's basketball D3": "basketball-men/d3",
+              "women's basketball D1": "basketball-women/d1",
+              "women's basketball D2": "basketball-women/d2",
+              "women's basketball D3": "basketball-women/d3",
+              "women's volleyball D1": "volleyball-women/d1",
+              "baseball D1": "baseball/d1",
+          }
+          for name, route in routes.items():
+              url = f"https://ncaa-api.henrygd.me/brackets/{route}/2025"
+              request = urllib.request.Request(url, headers={"User-Agent": "FreedomIPTV-CI/1.0"})
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  if response.status != 200:
+                      raise RuntimeError(f"{name}: HTTP {response.status}")
+                  root = json.loads(response.read())
+              championships = root.get("championships")
+              if not isinstance(championships, list) or not championships:
+                  raise RuntimeError(f"{name}: no championships array in 2025 bracket")
+              games = [game for championship in championships
+                       for game in (championship.get("games") or [])
+                       if isinstance(game, dict)]
+              if not games:
+                  raise RuntimeError(f"{name}: no bracket games returned")
+              positioned = sum(1 for game in games if game.get("bracketPositionId"))
+              if not positioned:
+                  raise RuntimeError(f"{name}: bracket games missing position IDs")
+              print(f"{name}: {len(games)} games, {positioned} with bracket positions")
+          PY
       - name: Build debug APK
         env:
           CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
