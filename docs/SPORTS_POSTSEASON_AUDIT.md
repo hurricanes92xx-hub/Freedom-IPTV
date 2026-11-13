@@ -1,3 +1,5 @@
+> Audit tracking is centralized in [SPORTS_AUDIT_TRACKER.md](SPORTS_AUDIT_TRACKER.md). This file is evidence/details only; don't count its findings as a separate audit queue.
+
 # Sports Postseason Coverage Audit
 
 Updated: 2026-11-13 (NCAA bracket mapping and Road to Nationals source inspection)
