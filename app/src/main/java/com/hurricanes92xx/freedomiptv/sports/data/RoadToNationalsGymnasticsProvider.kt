@@ -31,7 +31,13 @@ class RoadToNationalsGymnasticsProvider(
         }.distinctBy { it.id }.sortedBy { it.startUtcMillis }
     }
 
-    private fun cachedSeason(year: Int): List<Game> { val now = System.currentTimeMillis(); seasonCache[year]?.takeIf { now - it.fetchedAt < seasonTtlMillis }?.let { return it.games }; val games = season(year); seasonCache[year] = SeasonCache(now, games); return games }
+    private fun cachedSeason(year: Int): List<Game> {
+        val now = System.currentTimeMillis()
+        seasonCache[year]?.takeIf { now - it.fetchedAt < seasonTtlMillis }?.let { return it.games }
+        val games = season(year)
+        seasonCache[year] = SeasonCache(now, games)
+        return games
+    }
 
     private fun season(year: Int): List<Game> {
         val d1 = d1Teams(year)
