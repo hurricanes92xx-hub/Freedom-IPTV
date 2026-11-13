@@ -2,6 +2,7 @@ package com.hurricanes92xx.freedomiptv.sports.data
 
 import com.hurricanes92xx.freedomiptv.sports.model.*
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import java.time.Instant
 import java.time.ZoneOffset
