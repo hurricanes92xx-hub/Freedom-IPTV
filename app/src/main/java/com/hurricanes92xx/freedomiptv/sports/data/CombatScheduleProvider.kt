@@ -4,6 +4,8 @@ import com.hurricanes92xx.freedomiptv.sports.model.CombatEvent
 import com.hurricanes92xx.freedomiptv.sports.model.CombatPromotion
 import com.hurricanes92xx.freedomiptv.sports.model.GameState
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -25,20 +27,22 @@ class CombatScheduleProvider(
         if (toUtcMillis < fromUtcMillis) return@withContext emptyList()
         val start = Instant.ofEpochMilli(fromUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
         val end = Instant.ofEpochMilli(toUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
-        generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }.take(31)
-            .flatMap { day ->
+        val days = generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }.take(31).toList()
+        // Bound concurrency: faster than 31 serial requests, without flooding the free API.
+        days.chunked(4).flatMap { batch ->
+            batch.map { day -> async(Dispatchers.IO) {
                 val date = day.format(DateTimeFormatter.ISO_LOCAL_DATE)
                 val url = "https://www.thesportsdb.com/api/v1/json/$apiKey/eventsday.php?d=$date&s=" + URLEncoder.encode("Fighting", "UTF-8")
-                runCatching { fetch(url, promotion) }.getOrDefault(emptyList()).asSequence()
-            }.filter { it.startUtcMillis in fromUtcMillis..toUtcMillis }
-            .distinctBy { it.id }.sortedBy { it.startUtcMillis }.toList()
+                runCatching { fetch(url, promotion) }.getOrDefault(emptyList())
+            } }.awaitAll().flatten()
+        }.filter { it.startUtcMillis in fromUtcMillis..toUtcMillis }
+            .distinctBy { it.id }.sortedBy { it.startUtcMillis }
     }
 
     private fun matchesPromotion(event: JSONObject, title: String, promotion: CombatPromotion): Boolean {
         val metadata = listOf("strLeague", "strSport", "strEventAlternate", "strEvent").joinToString(" ") {
             event.optString(it)
         }.lowercase()
-        val normalizedTitle = title.lowercase()
         return when (promotion) {
             CombatPromotion.UFC -> "ufc" in metadata || "ultimate fighting championship" in metadata
             CombatPromotion.BOXING -> "boxing" in metadata || "box" in event.optString("strSport").lowercase()
