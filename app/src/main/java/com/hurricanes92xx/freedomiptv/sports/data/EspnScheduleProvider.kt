@@ -46,7 +46,7 @@ class EspnScheduleProvider(
         if (toUtcMillis < fromUtcMillis) return@withContext emptyList()
         val start = Instant.ofEpochMilli(fromUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
         val end = Instant.ofEpochMilli(toUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
-        val dates = generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }.take(15).toList()
+        val dates = generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }.toList()
         kotlinx.coroutines.coroutineScope {
             dates.chunked(4).flatMap { batch -> batch.map { date -> async(Dispatchers.IO) {
                 val day = date.format(DateTimeFormatter.BASIC_ISO_DATE)
