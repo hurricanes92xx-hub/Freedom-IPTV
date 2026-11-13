@@ -108,8 +108,8 @@ class RoadToNationalsGymnasticsProvider(
     private fun postseasonRound(value: String): String? {
         val s = value.lowercase()
         return when {
-            "national championship" in s || "championship final" in s -> "NCAA Championship"
-            "national semifinal" in s || "semifinal" in s -> "NCAA Semifinal"
+            "ncaa championships finals" in s || "ncaa championship final" in s || "national championship" in s -> "NCAA Championship"
+            "ncaa championships semifinal" in s || "national semifinal" in s || "semifinal" in s -> "NCAA Semifinal"
             "regional final" in s -> "NCAA Regional Final"
             "regional" in s -> "NCAA Regional"
             "conference championship" in s || "championship" in s -> "Conference Championship"
