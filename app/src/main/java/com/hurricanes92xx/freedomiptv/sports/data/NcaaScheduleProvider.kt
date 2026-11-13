@@ -25,7 +25,7 @@ class NcaaScheduleProvider(
  private val bracketRoutes=mapOf(
   Competition.NCAAM_D1 to BracketRoute("basketball-men","d1"), Competition.NCAAM_D2 to BracketRoute("basketball-men","d2"), Competition.NCAAM_D3 to BracketRoute("basketball-men","d3"),
   Competition.NCAAW_D1 to BracketRoute("basketball-women","d1"), Competition.NCAAW_D2 to BracketRoute("basketball-women","d2"), Competition.NCAAW_D3 to BracketRoute("basketball-women","d3"),
-  Competition.NCAAVB_W to BracketRoute("volleyball-women","d1"), Competition.NCAABASE to BracketRoute("baseball-men","d1")
+  Competition.NCAAVB_W to BracketRoute("volleyball-women","d1"), Competition.NCAABASE to BracketRoute("baseball-men","d1"),\n  Competition.NCAAGYM_W to BracketRoute("gymnastics-women","d1")
  )
  private fun bracketGames(root:JSONObject,c:Competition,from:Long,to:Long):List<Game>{
   val out=mutableListOf<Game>()
