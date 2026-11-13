@@ -23,8 +23,6 @@ class SportsScheduleRepository(
     private val mlb = MlbStatsApiProvider()
     private val nhl = NhLWebApiProvider()
     private val cfbd = CfbdScheduleProvider(apiKey = "r9AL0zagSt7NFDttDhrm7g/yOLqur8b6ktgGbO+VRT1eY2HFVGwr04JMiBYwsrjK")
-    private val sportscore = SportscoreScheduleProvider()
-    private val boxerbook = BoxerbookScheduleProvider()
 
     suspend fun schedule(competition: Competition, fromUtcMillis: Long, toUtcMillis: Long, bypassCache: Boolean = false): List<Game> = coroutineScope {
         if (toUtcMillis < fromUtcMillis) return@coroutineScope emptyList()
@@ -55,8 +53,6 @@ class SportsScheduleRepository(
             Competition.MLB -> runCatching { mlb.schedule(fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
             Competition.NHL -> runCatching { nhl.schedule(fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
             Competition.NCAAF_FBS -> runCatching { cfbd.schedule(fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
-            Competition.EPL, Competition.UCL, Competition.MLS -> runCatching { sportscore.schedule(competition, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
-            Competition.BOXING -> runCatching { boxerbook.schedule(fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList())
             else -> emptyList()
         }
         val soccerBase = espnGames + ncaaGames + secondary + leagueSupplement
