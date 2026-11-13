@@ -90,7 +90,17 @@ class CfbdScheduleProvider(
                         val explicitRound = playoff?.optString("roundName").orEmpty()
                             .ifBlank { playoff?.optString("round").orEmpty() }
                             .ifBlank { notes.takeIf { it.contains("playoff", ignoreCase = true) || it.contains("championship", ignoreCase = true) }.orEmpty() }
-                        val roundLabel = explicitRound.takeIf(String::isNotBlank)
+                        val normalizedCfpRound = when (explicitRound.lowercase().replace('-', '_').replace(' ', '_')) {
+                            "first_round", "first round" -> "CFP First Round"
+                            "quarterfinal", "quarterfinals" -> "CFP Quarterfinals"
+                            "semifinal", "semifinals", "semi_final", "semi_finals" -> "CFP Semifinals"
+                            "championship", "national_championship" -> "CFP Championship"
+                            else -> null
+                        }
+                        val cfpBowl = playoff?.optString("bowlName").orEmpty().takeIf(String::isNotBlank)
+                        val roundLabel = if (playoff?.optString("competition").equals("cfp", ignoreCase = true) && normalizedCfpRound != null) {
+                            listOfNotNull(normalizedCfpRound, cfpBowl).joinToString(" • ")
+                        } else explicitRound.takeIf(String::isNotBlank)
                             ?: if (division == Competition.NCAAF_FCS && seasonType.lowercase() == "postseason") {
                                 when (game.optInt("week", week)) {
                                     15 -> "FCS Playoffs • First Round"
