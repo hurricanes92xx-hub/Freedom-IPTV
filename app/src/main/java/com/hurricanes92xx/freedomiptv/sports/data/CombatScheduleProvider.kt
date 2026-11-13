@@ -50,13 +50,13 @@ class CombatScheduleProvider(
             val slot = when (promotion) {
                 CombatPromotion.WWE -> when (day.dayOfWeek) {
                     DayOfWeek.MONDAY -> Triple("Monday Night Raw",20,"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/WWE_Raw_Logo_2019.svg/1280px-WWE_Raw_Logo_2019.svg.png")
-                    DayOfWeek.TUESDAY -> Triple("WWE NXT",20,"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/WWE_NXT_Logo.svg/1280px-WWE_NXT_Logo.svg.png")
-                    DayOfWeek.FRIDAY -> Triple("WWE SmackDown",20,"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/WWE_SmackDown_Logo.svg/1280px-WWE_SmackDown_Logo.svg.png")
+                    DayOfWeek.TUESDAY -> Triple("WWE NXT",20,"https://commons.wikimedia.org/wiki/Special:FilePath/WWE_NXT_2024_Logo.svg")
+                    DayOfWeek.FRIDAY -> Triple("WWE SmackDown",20,"https://commons.wikimedia.org/wiki/Special:FilePath/WWE_SmackDown_%282024%29_Logo.svg")
                     else -> null
                 }
                 CombatPromotion.AEW -> when (day.dayOfWeek) {
                     DayOfWeek.WEDNESDAY -> Triple("AEW Dynamite",20,"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/AEW_Dynamite_logo_%28simplified%29.jpg/1280px-AEW_Dynamite_logo_%28simplified%29.jpg")
-                    DayOfWeek.SATURDAY -> Triple("AEW Collision",20,"https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/AEW_Collision_logo.svg/1280px-AEW_Collision_logo.svg.png")
+                    DayOfWeek.SATURDAY -> Triple("AEW Collision",20,"https://commons.wikimedia.org/wiki/Special:FilePath/AEW_Collision_logo.svg")
                     else -> null
                 }
                 CombatPromotion.TNA -> if (day.dayOfWeek == DayOfWeek.THURSDAY) Triple("TNA Thursday Night iMPACT!",21,"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Thursday_Night_iMPACT%21.png/1280px-Thursday_Night_iMPACT%21.png") else null
