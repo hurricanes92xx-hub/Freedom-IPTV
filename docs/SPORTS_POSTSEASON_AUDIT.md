@@ -26,7 +26,7 @@ This is a provider/code audit, not a claim that every future event has been live
 | Women's basketball D2/D3 | NCAA scoreboard + NCAA bracket | 2025 bracket positions mapped through First Round, Second Round, Regional Semifinal/Final, National Semifinal, Championship |
 | Women's volleyball | ESPN + NCAA scoreboard + NCAA bracket | 2025 position IDs mapped First Round through Championship |
 | Baseball / CWS | ESPN + NCAA scoreboard + NCAA bracket | Correct HenryGD route is `baseball/d1`; 2025 positions map Regional, Super Regional, College World Series, CWS Championship |
-| Women's gymnastics | Road to Nationals `/api/women/schedule/{year}/1` + ESPN | RTN schedule adapter supplements ESPN; D1 meet filter uses RTN rankings (`/currentweek/{year}` + `/results/{year}/{week}/0/5`). Inspected The Five That Score's current RTN-derived 2026 schedule snapshot (342 meets, Jan 2–Apr 18); it includes Regional Round 1/2/Final, NCAA Championships Semifinal I/II, and NCAA Championships Finals. Provider round parsing was corrected to map those exact championship strings to NCAA Semifinal/Championship (rather than generic Conference Championship). App runtime feed validation remains pending. |
+| Women's gymnastics | Road to Nationals `/api/women/schedule/{year}/1` + ESPN | RTN schedule adapter supplements ESPN; D1 meet filter uses RTN rankings (`/currentweek/{year}` + `/results/{year}/{week}/0/5`). Inspected The Five That Score's current RTN-derived 2026 schedule snapshot (342 meets, Jan 2–Apr 18); it includes Regional Round 1/2/Final, NCAA Championships Semifinal I/II, and NCAA Championships Finals. Provider round parsing was corrected to map those exact championship strings to NCAA Semifinal/Championship (rather than generic Conference Championship). CI live-feed validation passed Nov 13, 2026 (build #301): RTN 2026 schedule returned meets and ranking lookup was offseason-tolerant; this confirms endpoint availability/shape, not Android runtime rendering or future-season completeness. |
 
 ## Implementation and validation notes
 
@@ -41,7 +41,7 @@ This is a provider/code audit, not a claim that every future event has been live
 ## Remaining postseason work
 
 1. Validate 2025 NCAA FCS playoff and FBS CFP/bowl event labeling against real ESPN event payloads.
-2. Verify RTN gymnastics provider at runtime: confirm D1 meet counts, regional semifinal/final and NCAA semifinal/championship labels, and time zone conversion.\n3. Validate NCAA baseball/CWS schedule windows against the dated scoreboard feed (bracket payloads alone are not a complete daily schedule).
+2. Runtime gymnastics UI/feed verification remains open: confirm D1 meet counts, regional semifinal/final and NCAA semifinal/championship labels, and time-zone conversion.\n3. Validate NCAA baseball/CWS schedule windows against the dated scoreboard feed (bracket payloads alone are not a complete daily schedule).
 4. Keep monitoring provider changes and confirm upcoming-season data when it becomes available.
 
 ## Live schedule coverage spot-check (2026-11-13)
@@ -50,3 +50,6 @@ This is a provider/code audit, not a claim that every future event has been live
 - **Division separation change (Nov 13):** FCS now prefers CFBD with `classification=fcs`; FBS remains ESPN-primary with CFBD `classification=fbs` as a supplement. The CFBD adapter obtains the season calendar and queries only overlapping weeks, then filters returned games by the requested UTC window and team classifications. If CFBD is unavailable/empty, FCS falls back to ESPN's shared college-football scoreboard to avoid blank screens; this fallback can mix FBS/FCS and is explicitly not division-clean.
 - **CI live-source smoke (Nov 13, 2026):** GitHub Actions authenticated to CFBD, read the calendar, queried both `classification=fbs` and `classification=fcs`, checked team classification, deduplicated game IDs, and counted kickoff dates strictly inside its rolling 14-day window. Build #294 returned **147 FBS / 128 FCS** across the full window (Nov 12–27 UTC); this is a broad window total, not a single-week slate comparison. This confirms key/API response and division endpoint shape, not the Android app's runtime rendering or official completeness.
 - **Still unverified:** compare per-date counts and matchups against official NCAA/ESPN slates, especially FCS playoff and FBS bowl/CFP weeks; confirm Android provider parsing/time-zone presentation. CFBD is enabled only when `CFBD_API_KEY` is configured. Treat actual app runtime and postseason completeness as pending; fallback presence is not proof of accurate FCS-only coverage.
+
+
+- **CI gymnastics feed smoke (Nov 13, 2026, build #301):** RTN 2026 schedule endpoint returned meets; ranking week was safely parsed and ranking fallback handled offseason values. The smoke test passed alongside CFBD, NCAA bracket checks, and APK build. This validates live endpoint response and CI resilience, not full app event rendering or complete D1 filtering.
