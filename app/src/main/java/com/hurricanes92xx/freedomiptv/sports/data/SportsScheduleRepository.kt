@@ -23,12 +23,25 @@ class SportsScheduleRepository(
     private val mlb = MlbStatsApiProvider()
     private val nhl = NhLWebApiProvider()
     private val cfbd = CfbdScheduleProvider(apiKey = System.getenv("CFBD_API_KEY").orEmpty())
+    private val combat = CombatScheduleProvider()
 
     suspend fun schedule(competition: Competition, fromUtcMillis: Long, toUtcMillis: Long, bypassCache: Boolean = false): List<Game> = coroutineScope {
         if (toUtcMillis < fromUtcMillis) return@coroutineScope emptyList()
         val cacheKey = "${competition.id}:$fromUtcMillis:$toUtcMillis"
         if (!bypassCache) scheduleCache[cacheKey]?.let { cached ->
             if (System.currentTimeMillis() - cached.savedAt < cacheTtlMillis) return@coroutineScope cached.games
+        }
+        if (competition.sport == Sport.COMBAT) {
+            val promotion = when (competition) {
+                Competition.UFC -> CombatPromotion.UFC
+                Competition.BOXING -> CombatPromotion.BOXING
+                Competition.WWE -> CombatPromotion.WWE
+                Competition.AEW -> CombatPromotion.AEW
+                Competition.TNA -> CombatPromotion.TNA
+                else -> return@coroutineScope emptyList()
+            }
+            // Combat events are available through combatEvents(); never fabricate team games.
+            return@coroutineScope emptyList()
         }
         val primary = async { runCatching { espn.schedule(competition, fromUtcMillis, toUtcMillis) }.getOrDefault(emptyList()) }
         // NCAA's alternate feed supplements ESPN instead of being hidden whenever ESPN has partial data.
