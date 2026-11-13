@@ -103,12 +103,14 @@ class CfbdScheduleProvider(
                         } else explicitRound.takeIf(String::isNotBlank)
                             ?: if (division == Competition.NCAAF_FCS && seasonType.lowercase() == "postseason") {
                                 when (game.optInt("week", week)) {
-                                    15 -> "FCS Playoffs • First Round"
-                                    16 -> "FCS Playoffs • Second Round"
-                                    17 -> "FCS Playoffs • Third Round"
-                                    18 -> "FCS Playoffs • Quarterfinals"
-                                    19 -> "FCS Playoffs • Semifinals"
-                                    20 -> "FCS Playoffs • Championship"
+                                    // CFBD postseason calendar uses round weeks 1–6; keep
+                                    // legacy/global week values accepted defensively.
+                                    1, 15 -> "FCS Playoffs • First Round"
+                                    2, 16 -> "FCS Playoffs • Second Round"
+                                    3, 17 -> "FCS Playoffs • Third Round"
+                                    4, 18 -> "FCS Playoffs • Quarterfinals"
+                                    5, 19 -> "FCS Playoffs • Semifinals"
+                                    6, 20 -> "FCS Playoffs • Championship"
                                     else -> "FCS Playoffs"
                                 }
                             } else null
