@@ -41,7 +41,7 @@ This is a provider/code audit, not a claim that every future event has been live
 ## Remaining postseason work
 
 1. Validate 2025 NCAA FCS playoff and FBS CFP/bowl event labeling against real ESPN event payloads.
-2. Runtime gymnastics UI/feed verification remains open: confirm D1 meet counts, regional semifinal/final and NCAA semifinal/championship labels, and time-zone conversion.\n3. Validate NCAA baseball/CWS schedule windows against the dated scoreboard feed (bracket payloads alone are not a complete daily schedule).
+2. Runtime gymnastics UI/feed verification remains open: confirm D1 meet counts, regional semifinal/final and NCAA semifinal/championship labels, and time-zone conversion.\n3. **Baseball/CWS dated-feed audit:** completed source spot-check for 2025 (153 unique bracket IDs, all four position groups; bracket dates cross-checked against daily scoreboards). A matching CI smoke now verifies ≥140 bracket IDs against dated scoreboard IDs across every bracket date. This is a historical integration check; current-season runtime and completeness remain unverified.
 4. Keep monitoring provider changes and confirm upcoming-season data when it becomes available.
 
 ## Live schedule coverage spot-check (2026-11-13)
@@ -60,3 +60,11 @@ This is a provider/code audit, not a claim that every future event has been live
 - Reviewed `CfbdScheduleProvider.kt`: it queries calendar-overlapping weeks with division classification and exact UTC window filtering; FCS/FBS team classification is enforced and game IDs deduplicated.
 - **Gap found:** CFBD `Game` construction currently passes the raw `week` into the clock/detail field and leaves `round` null. Thus the feed can return FCS playoff games, but the provider itself does not label FCS playoff rounds. ESPN's shared college-football feed extracts postseason round text from event/competition notes, but its FCS fallback is not division-clean.
 - Action: retain division-correct CFBD as FCS primary; round-labeling remains a follow-up. Avoid guessing round names from week numbers until the actual CFBD postseason payload is checked.
+
+
+## NCAA baseball / CWS dated schedule cross-check (Nov 13, 2026)
+
+- Inspected the HenryGD 2025 D1 baseball bracket and daily scoreboard endpoints. Bracket payload contains **153 unique contest IDs**, spanning position groups 1–4 (Regional, Super Regional, College World Series, CWS Championship) and 18 distinct scheduled dates from May 30 through June 23.
+- Checked dated scoreboard payloads through the tournament schedule, including CWS finals (June 21/22/23); bracket IDs appear on their matching scoreboard dates. Empty scoreboard dates (e.g. June 19/20) are not automatically missing games: the bracket can contain TBA/if-necessary records or no event that day.
+- Added GitHub Actions step **“NCAA baseball dated scoreboard vs bracket smoke (2025 CWS)”**: requires 153 unique bracket entries, all four bracket-position groups, fetches every bracket date's scoreboard, and demands at least 140/153 ID matches. This protects against upstream route/ID/date drift.
+- **Scope:** this proves historical bracket/scoreboard integration and source structure; it does not establish live 2026 coverage or Android runtime presentation. CI result will be reported separately after run completion.
