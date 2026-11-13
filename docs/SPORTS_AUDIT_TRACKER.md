@@ -15,7 +15,7 @@ This is the **only checklist for audit completion**. Other sports documents are 
 
 | Audit unit | Primary evidence/check (run once per unit) | Status | Remaining acceptance |
 |---|---|---|---|
-| Pro leagues (NFL, NBA, WNBA, MLB, NHL, MLS, EPL, UCL) | ESPN schema smoke; league supplements reviewed in provider code | Feed schema checked; event completeness/runtime open | In-season sample, league-specific postseason labels, UI date/state checks |
+| Pro leagues (NFL, NBA, WNBA, MLB, NHL, MLS, EPL, UCL) | ESPN schema smoke; league supplements reviewed in provider code | **Checked:** Nov 13 ESPN-backed slate reference lists NBA 9 games + NHL 2; NFL Nov 12 WAS–NYG and Nov 15 full Week 10 slate cross-checked against official NFL schedule. MLB/WNBA off-season; MLS/EPL/UCL have no fixtures in this sampled window (international break/competition calendar). | App parity, postseason label/date/time UI and league-by-league feed completeness remain open |
 | FBS football | ESPN + CFBD division/week smoke; CFP/bowl payload audit | Provider/code reviewed; CFP round normalization implemented | Validate dated CFP/bowl labels against actual event cards/runtime |
 | FCS football | CFBD classification/week smoke | **Checked:** CFBD division filter and Nov 13 in-season slate spot-check; ESPN fallback explicitly degraded/mixed | FCS playoff round + dated game/UI verification |
 | Men's basketball D1 | ESPN/NCAA + 2025 bracket smoke/round mapping | Historical bracket shape verified | Runtime season date window and tournament card verification |
@@ -42,6 +42,7 @@ This is the **only checklist for audit completion**. Other sports documents are 
 - [x] **Women's gymnastics source:** RTN 2026 schedule/ranking endpoint smoke and inspection passed; runtime D1/timezone/round display remains open.
 - [x] **UFC segment source check:** official UFC/Paramount event schedule confirms UFC 334 early prelim/prelim/main start times; ESPN competition records have bout data but no dependable segment classification. Event-level segment entries are appropriate; bout-level labels remain unsupported.
 - [x] **Combat representative calendar check:** checked official WWE, AEW, TNA and independent boxing schedules for Nov 9–15 sample programming/cards; weekly TV placeholders and official specials are distinct from third-party feed completeness. Keep actual-source coverage and app runtime verification open.
+- [x] **Pro-league dated slate sample:** Nov 13 NBA (9) and NHL (2) counts cross-checked against ESPN-derived public slate; NFL Thursday Nov 12 result and official Nov 15 Week 10 schedule checked. MLB/WNBA seasonal emptiness and soccer fixture-free window noted as expected, not provider failure. App/runtime parity remains outstanding.
 
 ## CI checks: intentionally distinct (not duplicate sport audits)
 
