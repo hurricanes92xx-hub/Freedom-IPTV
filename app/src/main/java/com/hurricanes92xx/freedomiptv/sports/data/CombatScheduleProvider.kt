@@ -74,7 +74,7 @@ class CombatScheduleProvider(
                         status.contains("cancel") -> GameState.CANCELED
                         else -> GameState.SCHEDULED
                     }
-                    val poster = listOf("strPoster", "strFanart", "strThumb", "strBanner")
+                    val poster = listOf("strPoster", "strFanart", "strEventThumb", "strThumb", "strBanner", "strLogo", "strLeagueLogo", "strBadge")
                         .map { event.optString(it) }.firstOrNull { it.startsWith("https://") || it.startsWith("http://") }
                     add(CombatEvent(event.optString("idEvent", "${promotion.id}_${start}"), promotion.id, title, start, poster, state = state))
                 }
