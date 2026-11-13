@@ -118,6 +118,36 @@ jobs:
                   raise RuntimeError(f"{name}: bracket games missing position IDs")
               print(f"{name}: {len(games)} games, {positioned} with bracket positions")
           PY
+      - name: Women's gymnastics Road to Nationals feed smoke (2026 season)
+        run: |
+          python - <<'PY'
+          import json, urllib.request
+
+          base = "https://www.roadtonationals.com/api/women"
+          def get(path):
+              req = urllib.request.Request(base + path, headers={"Accept":"application/json","User-Agent":"FreedomIPTV-CI/1.0"})
+              with urllib.request.urlopen(req, timeout=20) as response:
+                  if response.status != 200:
+                      raise RuntimeError(f"RTN HTTP {response.status}: {path}")
+                  return json.loads(response.read())
+          week = get("/currentweek/2026").get("max", 0)
+          if not isinstance(week, int) or week < 1:
+              raise RuntimeError("RTN 2026 currentweek did not return a valid season week")
+          ranking = get(f"/results/2026/{week}/0/5").get("data")
+          if not isinstance(ranking, list) or not ranking:
+              raise RuntimeError("RTN 2026 D1 ranking/results payload missing")
+          d1 = [row for row in ranking if row.get("div") == "Div I"]
+          if not d1:
+              raise RuntimeError("RTN rankings did not identify Division I teams")
+          schedule = get("/schedule/2026/1")
+          meets = [meet for day in schedule.values() if isinstance(day, dict)
+                   for meet in (day.get("meets") or []) if isinstance(meet, dict)]
+          if not meets:
+              raise RuntimeError("RTN 2026 women's schedule has no meets")
+          postseason = [m for m in meets if any(term in str(m.get("meet_desc", "")).lower()
+                        for term in ("regional", "ncaa championships", "national championship"))]
+          print(f"RTN 2026 OK: week={week}, D1 ranking rows={len(d1)}, season meets={len(meets)}, postseason-labeled meets={len(postseason)}")
+          PY
       - name: Build debug APK
         env:
           CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
