@@ -125,8 +125,8 @@ jobs:
                       time.sleep(delay)
           else:
               raise RuntimeError(f"CFBD FCS postseason failed after retries: {last_error}")
-          if not isinstance(games, list) or len(games) < 25:
-              raise RuntimeError(f"Expected full 2025 FCS playoff slate; got {len(games) if isinstance(games,list) else type(games)}")
+          if not isinstance(games, list) or len(games) < 23:
+              raise RuntimeError(f"Expected full 2025 24-team FCS playoff slate (23 games); got {len(games) if isinstance(games,list) else type(games)}")
           rounds = {
               1: "FCS Playoffs • First Round", 15: "FCS Playoffs • First Round",
               2: "FCS Playoffs • Second Round", 16: "FCS Playoffs • Second Round",
