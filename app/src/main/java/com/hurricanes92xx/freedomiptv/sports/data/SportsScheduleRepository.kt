@@ -38,7 +38,11 @@ class SportsScheduleRepository(
             .takeWhile { !it.isAfter(Instant.ofEpochMilli(toUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()) }.take(15).toList()
         // Combat feeds are routinely absent from ESPN; query the supplement there even with primary results.
         val secondary = if ((espnGames.isEmpty() && ncaaGames.isEmpty()) || competition.sport == Sport.COMBAT) {
-            days.flatMap { day -> runCatching { sportsDb.schedule(competition, day.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()) }.getOrDefault(emptyList()) }
+            coroutineScope {
+                days.chunked(4).flatMap { batch -> batch.map { day -> async {
+                    runCatching { sportsDb.schedule(competition, day.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()) }.getOrDefault(emptyList())
+                } }.awaitAll().flatten() }
+            }
         } else emptyList()
         val soccerBase = espnGames + ncaaGames + secondary
         // API-Football supplements partial ESPN soccer dates; dedupe merged games below.
