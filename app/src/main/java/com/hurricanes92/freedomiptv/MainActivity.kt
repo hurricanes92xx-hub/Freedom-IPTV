@@ -438,7 +438,7 @@ private fun FreedomApp() {
                                         }
                                     }
                                     if (combatLoading) Text("Loading fight calendar…", color = Color.LightGray)
-                                    else if (combatEvents.isEmpty()) Text("No fight events listed for this date.", color = Color.LightGray)
+                                    else if (combatEvents.isEmpty()) Text(if (ppvMode) "No events returned in the next 30 days. Some weekly broadcasts may not be listed by the upstream feed; check the promotion\u2019s live channels." else "No fight event returned for this date. Weekly TV and prelim cards can be missing from third-party feeds; use 30 DAYS for upcoming PPVs.", color = Color.LightGray)
                                     else combatEvents.forEach { event ->
                                         Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
                                             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -460,7 +460,7 @@ private fun FreedomApp() {
                                     }
                                     val filteredGames = scheduledGames.filter { game -> when(gameStatusFilter) { "Live" -> game.state == GameState.LIVE; "Upcoming" -> game.state == GameState.SCHEDULED; "Final" -> game.state == GameState.FINAL; else -> true } }
                                     if(scheduleLoading) Text("Loading schedule…", color = Color.LightGray)
-                                    else if(filteredGames.isEmpty()) Text(if(scheduledGames.isEmpty()) "No games scheduled for " + java.time.LocalDate.now(java.time.ZoneId.systemDefault()).plusDays(scheduleDayOffset.toLong()).format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d")) + ". This may be an off-day or offseason—try another date or competition." else "No ${gameStatusFilter.lowercase()} games in this schedule.", color = Color.LightGray)
+                                    else if(filteredGames.isEmpty()) Text(if(scheduledGames.isEmpty()) "No ${selectedCompetition.label} events returned for " + java.time.LocalDate.now(java.time.ZoneId.systemDefault()).plusDays(scheduleDayOffset.toLong()).format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d")) + ". Likely an off-day/offseason, or the feed has no listing. Try Tomorrow/another date; offseason does not mean the league is broken." else "No ${gameStatusFilter.lowercase()} ${selectedCompetition.label} games on this date.", color = Color.LightGray)
                                     else filteredGames.take(20).forEach { game ->
                                         Card(colors = CardDefaults.cardColors(containerColor = if(game.state == GameState.LIVE) Color(0xFF2B1820) else Panel), shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
                                             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
