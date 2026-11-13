@@ -28,10 +28,10 @@ This is the **only checklist for audit completion**. Other sports documents are 
 | Baseball D1 / CWS | NCAA bracket + dated-scoreboard cross-check (153 historical games) | Historical integration check passed | Current-season runtime and CWS display verification |
 | Women's gymnastics | Road to Nationals schedule/ranking smoke + ESPN fallback | RTN endpoint and 2026 schedule inspected | Runtime D1 filtering, time zone, regional/NCAA labels |
 | Combat: UFC | ESPN event/bout parser + Combat provider event path | Event listing and UFC card source reviewed; bout segment gaps known | Confirm upcoming/recent event & prelim coverage; reliable bout-level segment labels |
-| Combat: Boxing | Combat provider / SportsDB event path | Code-reviewed; feed completeness unverified | Check representative actual dates and event cards |
-| Combat: WWE | SportsDB + recurring TV supplements | Selector/filter/UI wired; source completeness unverified | Verify Raw/SmackDown/NXT + PPV sample dates |
-| Combat: AEW | SportsDB + recurring TV supplements | Selector/filter/UI wired; source completeness unverified | Verify Dynamite/Collision + PPV sample dates |
-| Combat: TNA | SportsDB + recurring TV supplements | Selector/filter/UI wired; source completeness unverified | Verify Impact + PPV sample dates |
+| Combat: Boxing | Combat provider / SportsDB event path | **Checked:** Nov 14 Viddal Riley–Seydi Coupe and Nov 20 Lauren Price–Michaela Kotaskova found on WBC/BBC calendars; SportsDB Fighting feed coverage still unverified | Validate app events against date samples; no comprehensive boxing calendar source |
+| Combat: WWE | SportsDB + recurring TV supplements | **Checked:** Nov 9 Raw, Nov 13 SmackDown, weekly Tuesday NXT cadence, and Nov 28 Survivor Series confirmed; provider slots are recurring placeholders, not event-feed completeness | Runtime date/title display + source event dedupe |
+| Combat: AEW | SportsDB + recurring TV supplements | **Checked:** Nov 11 Dynamite/Collision special and Nov 14 Full Gear verified against AEW schedule; weekly slots may misstate special combined/shifted broadcasts | Runtime schedule accuracy and PPV dedupe |
+| Combat: TNA | SportsDB + recurring TV supplements | **Checked:** Nov 12 Impact and Nov 15 Destination X confirmed; weekly Thursday placeholder matches current broadcast cadence | Runtime display + special-event dedupe/source timing |
 
 ## Completed sport-audit evidence (do not repeat)
 
@@ -41,6 +41,7 @@ This is the **only checklist for audit completion**. Other sports documents are 
 - [x] **Baseball historical join:** 153 2025 bracket game IDs cross-confirmed against dated scoreboards; completed historical integration evidence, not a recurring audit.
 - [x] **Women's gymnastics source:** RTN 2026 schedule/ranking endpoint smoke and inspection passed; runtime D1/timezone/round display remains open.
 - [x] **UFC segment source check:** official UFC/Paramount event schedule confirms UFC 334 early prelim/prelim/main start times; ESPN competition records have bout data but no dependable segment classification. Event-level segment entries are appropriate; bout-level labels remain unsupported.
+- [x] **Combat representative calendar check:** checked official WWE, AEW, TNA and independent boxing schedules for Nov 9–15 sample programming/cards; weekly TV placeholders and official specials are distinct from third-party feed completeness. Keep actual-source coverage and app runtime verification open.
 
 ## CI checks: intentionally distinct (not duplicate sport audits)
 
