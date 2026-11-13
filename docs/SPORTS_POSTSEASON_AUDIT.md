@@ -65,8 +65,7 @@ This is a provider/code audit, not a claim that every future event has been live
 ## FBS/FCS playoff round audit (Nov 13, 2026)
 
 - Reviewed `CfbdScheduleProvider.kt`: it queries calendar-overlapping weeks with division classification and exact UTC window filtering; FCS/FBS team classification is enforced and game IDs deduplicated.
-- **Gap found:** CFBD `Game` construction currently passes the raw `week` into the clock/detail field and leaves `round` null. Thus the feed can return FCS playoff games, but the provider itself does not label FCS playoff rounds. ESPN's shared college-football feed extracts postseason round text from event/competition notes, but its FCS fallback is not division-clean.
-- Action: retain division-correct CFBD as FCS primary; round-labeling remains a follow-up. Avoid guessing round names from week numbers until the actual CFBD postseason payload is checked.
+- **Round-label fix (Nov 13):** CFBD postseason calendar/game week numbering is round-relative (weeks 1–6), not regular-season/global weeks 15–20. The provider now maps postseason week 1–6 to First Round, Second Round, Third Round, Quarterfinals, Semifinals, and Championship; legacy 15–20 values remain accepted defensively. This fixes the previously unreachable labels when CFBD emits round-relative weeks. CI compilation is required; live 2025 FCS round-by-round payload validation is still pending.
 
 
 ## NCAA baseball / CWS dated schedule cross-check (Nov 13, 2026)
