@@ -54,7 +54,8 @@ class NcaaScheduleProvider(
     val inferredRound=when{
     c==Competition.NCAAM_D1||c==Competition.NCAAW_D1->when(position/100){1->"First Four";2->"First Round";3->"Second Round";4->"Sweet 16";5->"Elite Eight";6->"Final Four";7->"Championship";else->""}
     c==Competition.NCAAVB_W->when(position/100){1->"First Round";2->"Second Round";3->"Regional Semifinal";4->"Regional Final";5->"National Semifinal";6->"Championship";else->""}
-    else->when(position/100){1->"First Round";2->"Second Round";3->"Regional Round";4->"Regional Final";5->"Semifinal";6->"Championship";else->""}
+    c==Competition.NCAAM_D2||c==Competition.NCAAM_D3||c==Competition.NCAAW_D2||c==Competition.NCAAW_D3->when(position/100){1->"First Round";2->"Second Round";3->"Regional Semifinal";4->"Regional Final";5->"National Semifinal";6->"Championship";else->""}
+    else->""
     }
     val round=game.optString("roundName").ifBlank{game.optString("round").ifBlank{inferredRound.ifBlank{"NCAA Tournament"}}}
     out.add(Game(id,c.id,team(home,homeName),team(away,awayName),millis,state,home.optInt("score").takeIf{home.has("score")},away.optInt("score").takeIf{away.has("score")},game.optString("currentPeriod").ifBlank{null},game.optString("contestClock").ifBlank{null},null,round))
