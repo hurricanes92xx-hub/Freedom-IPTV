@@ -42,3 +42,9 @@ This is a provider/code audit, not a claim that every future event has been live
 1. Validate 2025 NCAA FCS playoff and FBS CFP/bowl event labeling against real ESPN event payloads.
 2. Verify RTN gymnastics provider at runtime: confirm D1 meet counts, regional semifinal/final and NCAA semifinal/championship labels, and time zone conversion.\n3. Validate NCAA baseball/CWS schedule windows against the dated scoreboard feed (bracket payloads alone are not a complete daily schedule).
 4. Keep monitoring provider changes and confirm upcoming-season data when it becomes available.
+
+## Live schedule coverage spot-check (2026-11-13)
+
+- Compared the upcoming Nov 13–14 FBS/FCS slate against NCAA.com and ESPN Press Room schedule listings. Both divisions have games during the current week; an empty date must not be described as a league offseason.
+- **Known data-model limitation:** ESPN adapter maps both `ncaaf-fbs` and `ncaaf-fcs` to the same `football/college-football` scoreboard. NCAA alternate adapter intentionally returns empty for both football divisions, while CFBD supplement currently only populates FBS. Consequently, FCS selection can show the shared ESPN feed (potential FBS leakage) and has no independent FCS-only feed guarantee. This is an upstream/provider separation issue, not an offseason condition.
+- Follow-up: add division-aware FCS source/filtering and validate FBS/FCS event counts against official slates before marking coverage complete. Source spot-check: NCAA week 11 schedule (Nov 12, 2026) and ESPN Week 11 press release (Nov 9, 2026).
