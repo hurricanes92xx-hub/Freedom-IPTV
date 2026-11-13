@@ -217,7 +217,6 @@ jobs:
               "NCAA women's basketball D1": ("basketball", "womens-college-basketball"),
               "NCAA women's volleyball": ("volleyball", "womens-college-volleyball"),
               "NCAA baseball": ("baseball", "college-baseball"),
-              "NCAA women's gymnastics": ("gymnastics", "womens-college-gymnastics"),
               "NBA": ("basketball", "nba"), "WNBA": ("basketball", "wnba"),
               "MLB": ("baseball", "mlb"), "NHL": ("hockey", "nhl"),
               "MLS": ("soccer", "usa.1"), "EPL": ("soccer", "eng.1"),
