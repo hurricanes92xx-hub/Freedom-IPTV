@@ -34,9 +34,18 @@ class CombatScheduleProvider(
         // Bound concurrency: faster than 31 serial requests, without flooding the free API.
         days.chunked(4).flatMap { batch ->
             batch.map { day -> async(Dispatchers.IO) {
-                val date = day.format(DateTimeFormatter.ISO_LOCAL_DATE)
-                val url = "https://www.thesportsdb.com/api/v1/json/$apiKey/eventsday.php?d=$date&s=" + URLEncoder.encode("Fighting", "UTF-8")
-                runCatching { fetch(url, promotion) }.getOrDefault(emptyList())
+                if (promotion == CombatPromotion.UFC) {
+                    val espn = runCatching { fetchEspnUfc(day) }.getOrDefault(emptyList())
+                    if (espn.isNotEmpty()) espn else {
+                        val date = day.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                        val url = "https://www.thesportsdb.com/api/v1/json/$apiKey/eventsday.php?d=$date&s=" + URLEncoder.encode("Fighting", "UTF-8")
+                        runCatching { fetch(url, promotion) }.getOrDefault(emptyList())
+                    }
+                } else {
+                    val date = day.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                    val url = "https://www.thesportsdb.com/api/v1/json/$apiKey/eventsday.php?d=$date&s=" + URLEncoder.encode("Fighting", "UTF-8")
+                    runCatching { fetch(url, promotion) }.getOrDefault(emptyList())
+                }
             } }.awaitAll().flatten()
         }.filter { it.startUtcMillis in fromUtcMillis..toUtcMillis }
             .plus(weeklyTelevision(promotion, start, end).filter { it.startUtcMillis in fromUtcMillis..toUtcMillis })
@@ -111,6 +120,52 @@ class CombatScheduleProvider(
             day=day.plusDays(1)
         }
         return out
+    }
+
+    /** ESPN UFC scoreboard contains each bout as an event competition. */
+    private fun fetchEspnUfc(day: LocalDate): List<CombatEvent> {
+        val date = day.format(DateTimeFormatter.BASIC_ISO_DATE)
+        val request = Request.Builder().url("https://site.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard?dates=$date")
+            .header("User-Agent", "FreedomIPTV/1.0").build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) return emptyList()
+            val events = JSONObject(response.body?.string().orEmpty()).optJSONArray("events") ?: return emptyList()
+            return buildList {
+                for (i in 0 until events.length()) {
+                    val event = events.optJSONObject(i) ?: continue
+                    val id = event.optString("id")
+                    val title = event.optString("name").ifBlank { event.optString("shortName") }
+                    val comps = event.optJSONArray("competitions") ?: continue
+                    val bouts = buildList {
+                        for (j in 0 until comps.length()) {
+                            val comp = comps.optJSONObject(j) ?: continue
+                            val competitors = comp.optJSONArray("competitors") ?: continue
+                            val names = buildList {
+                                for (k in 0 until competitors.length()) {
+                                    val name = competitors.optJSONObject(k)?.optJSONObject("athlete")?.optString("displayName").orEmpty().trim()
+                                    if (name.isNotBlank()) add(name)
+                                }
+                            }
+                            if (names.size == 2) add(com.hurricanes92xx.freedomiptv.sports.model.CombatBout(
+                                comp.optString("id", "$id-$j"), names,
+                                comp.optJSONObject("type")?.optString("abbreviation")?.takeIf { it.isNotBlank() },
+                                j == comps.length() - 1
+                            ))
+                        }
+                    }
+                    if (id.isBlank() || title.isBlank() || bouts.isEmpty()) continue
+                    val start = runCatching { Instant.parse(event.optString("date")).toEpochMilli() }.getOrDefault(0L)
+                    if (start <= 0L) continue
+                    val state = when (event.optJSONObject("status")?.optJSONObject("type")?.optString("state")) {
+                        "in" -> GameState.LIVE
+                        "post" -> GameState.FINAL
+                        else -> GameState.SCHEDULED
+                    }
+                    add(CombatEvent("espn-ufc-$id", CombatPromotion.UFC.id, title, start,
+                        "https://a.espncdn.com/i/teamlogos/leagues/500/ufc.png", bouts, state))
+                }
+            }
+        }
     }
 
     private fun matchesPromotion(event: JSONObject, title: String, promotion: CombatPromotion): Boolean {
