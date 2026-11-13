@@ -358,7 +358,6 @@ private fun FreedomApp() {
                         var gameStatusFilter by remember { mutableStateOf("All") }
                         val appContext = LocalContext.current
                         val artworkCache = remember { SportsArtworkCache(appContext) }
-                        val combatProvider = remember { CombatScheduleProvider() }
                         var selectedPromotion by remember { mutableStateOf(CombatPromotion.WWE) }
                         var combatEvents by remember { mutableStateOf<List<CombatEvent>>(emptyList()) }
                         var combatLoading by remember { mutableStateOf(false) }
@@ -371,7 +370,7 @@ private fun FreedomApp() {
                             val eventEnd = if (ppvMode) eventStart.plusDays(30) else day.plusDays(1)
                             val from = eventStart.atStartOfDay(zone).toInstant().toEpochMilli()
                             val to = eventEnd.atStartOfDay(zone).toInstant().toEpochMilli() - 1L
-                            combatEvents = runCatching { combatProvider.events(selectedPromotion, from, to) }.getOrDefault(emptyList())
+                            combatEvents = scheduleProvider.combatEvents(selectedPromotion, from, to)
                             artworkCache.putAll(combatEvents.mapNotNull { event -> event.posterUrl?.let { event.id to it } }.toMap())
                             combatLoading = false
                         }
