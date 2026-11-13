@@ -1,6 +1,6 @@
 # Freedom IPTV Sports Audit Tracker (single source of truth)
 
-Updated: 2026-11-13
+Updated: 2026-11-13 (combat pass)
 
 ## Completed audit-management work
 
@@ -40,6 +40,7 @@ This is the **only checklist for audit completion**. Other sports documents are 
 - [x] **NCAA bracket source shape:** 2025 endpoints and position groups checked for six basketball divisions, women's volleyball D1, and baseball D1. Historical endpoint audit is complete; runtime display remains open in the scope table.
 - [x] **Baseball historical join:** 153 2025 bracket game IDs cross-confirmed against dated scoreboards; completed historical integration evidence, not a recurring audit.
 - [x] **Women's gymnastics source:** RTN 2026 schedule/ranking endpoint smoke and inspection passed; runtime D1/timezone/round display remains open.
+- [x] **UFC segment source check:** official UFC/Paramount event schedule confirms UFC 334 early prelim/prelim/main start times; ESPN competition records have bout data but no dependable segment classification. Event-level segment entries are appropriate; bout-level labels remain unsupported.
 
 ## CI checks: intentionally distinct (not duplicate sport audits)
 
