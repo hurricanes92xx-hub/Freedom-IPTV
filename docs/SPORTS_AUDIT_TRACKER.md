@@ -2,6 +2,13 @@
 
 Updated: 2026-11-13
 
+## Completed audit-management work
+
+- [x] Reviewed `.github/workflows/android-build.yml` and all three sports audit notes for duplicated audit ownership.
+- [x] Classified CI steps as distinct contracts (CFBD division/live window, NCAA bracket positions, baseball bracket-to-scoreboard join, RTN feed, ESPN schema, Android compilation); no duplicate sport-completion rows remain.
+- [x] Created this canonical tracker and linked the postseason, schedule, and combat documents here. Future findings are recorded against the existing row—not opened as another audit.
+
+
 This is the **only checklist for audit completion**. Other sports documents are implementation notes/source evidence, not separate audit queues. A green Android CI run proves automated checks passed; it does not prove runtime UI or complete upstream schedules.
 
 ## Scope (one row per audit unit)
