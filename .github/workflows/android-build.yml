@@ -56,7 +56,7 @@ jobs:
                   if ws <= end and we >= start:
                       selected.add((year, int(entry["week"]), entry["seasonType"]))
 
-          totals = {"fbs": 0, "fcs": 0}
+          totals = {"fbs": set(), "fcs": set()}
           for year, week, season_type in sorted(selected):
               base = f"games?year={year}&week={week}&seasonType={urllib.parse.quote(season_type)}"
               for division in ("fbs", "fcs"):
@@ -70,8 +70,16 @@ jobs:
                           raise RuntimeError("FBS endpoint returned a game with no FBS team classification")
                       if division == "fcs" and "fcs" not in (hc, ac):
                           raise RuntimeError("FCS endpoint returned a game with no FCS team classification")
-                  totals[division] += len(games)
-          print(f"CFBD auth + calendar + division endpoints OK; next-14-day window: FBS={totals['fbs']} FCS={totals['fcs']} games.")
+                      kickoff = game.get("startDate")
+                      if not kickoff:
+                          continue
+                      try:
+                          game_date = datetime.datetime.fromisoformat(kickoff.replace("Z", "+00:00")).date()
+                      except ValueError:
+                          continue
+                      if start <= game_date <= end:
+                          totals[division].add(str(game.get("id") or kickoff + "|" + str(game.get("homeTeam")) + "|" + str(game.get("awayTeam"))))
+          print(f"CFBD auth + calendar + division endpoints OK; next-14-day window: FBS={len(totals['fbs'])} FCS={len(totals['fcs'])} unique games.")
           if not selected:
               print("No calendar weeks overlap this window (likely offseason); endpoint authentication still verified.")
           PY
