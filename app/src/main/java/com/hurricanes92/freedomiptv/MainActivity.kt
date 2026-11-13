@@ -362,12 +362,15 @@ private fun FreedomApp() {
                         var selectedPromotion by remember { mutableStateOf(CombatPromotion.WWE) }
                         var combatEvents by remember { mutableStateOf<List<CombatEvent>>(emptyList()) }
                         var combatLoading by remember { mutableStateOf(false) }
-                        LaunchedEffect(selectedPromotion, scheduleDayOffset) {
+                        var ppvMode by remember { mutableStateOf(false) }
+                        LaunchedEffect(selectedPromotion, scheduleDayOffset, ppvMode) {
                             combatLoading = true
                             val zone = java.time.ZoneId.systemDefault()
                             val day = java.time.LocalDate.now(zone).plusDays(scheduleDayOffset.toLong())
-                            val from = day.atStartOfDay(zone).toInstant().toEpochMilli()
-                            val to = day.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1L
+                            val eventStart = if (ppvMode) java.time.LocalDate.now(zone) else day
+                            val eventEnd = if (ppvMode) eventStart.plusDays(30) else day.plusDays(1)
+                            val from = eventStart.atStartOfDay(zone).toInstant().toEpochMilli()
+                            val to = eventEnd.atStartOfDay(zone).toInstant().toEpochMilli() - 1L
                             combatEvents = runCatching { combatProvider.events(selectedPromotion, from, to) }.getOrDefault(emptyList())
                             artworkCache.putAll(combatEvents.mapNotNull { event -> event.posterUrl?.let { event.id to it } }.toMap())
                             combatLoading = false
@@ -428,7 +431,7 @@ private fun FreedomApp() {
                                         Text(java.time.LocalDate.now().plusDays(scheduleDayOffset.toLong()).format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d")), color = Color.LightGray, fontSize = 12.sp)
                                         OutlinedButton(onClick = { scheduleDayOffset++ }) { Text("›") }
                                     }
-                                    Text("FIGHT NIGHT • EVENTS", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                                    Row(verticalAlignment = Alignment.CenterVertically) { Text("PPV • FIGHT NIGHT • PRELIMS", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold); Spacer(Modifier.weight(1f)); FilterChip(selected = ppvMode, onClick = { ppvMode = !ppvMode }, label = { Text(if (ppvMode) "30 DAYS" else "TODAY") }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = FreedomRed, selectedLabelColor = Color.White)) }
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         items(CombatPromotion.values().toList()) { promotion ->
                                             FilterChip(selected = selectedPromotion == promotion, onClick = { selectedPromotion = promotion }, label = { Text(promotion.label) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = FreedomRed, selectedLabelColor = Color.White))
@@ -442,7 +445,7 @@ private fun FreedomApp() {
                                                 AsyncImage(model = artworkCache.get(event.id) ?: event.posterUrl, contentDescription = event.title, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)))
                                                 Column(Modifier.padding(start = 12.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                                     Text(event.title, color = Color.White, fontWeight = FontWeight.Bold)
-                                                    Text(SimpleDateFormat("EEE, h:mm a", Locale.getDefault()).format(Date(event.startUtcMillis)), color = Color.LightGray, fontSize = 12.sp)
+                                                    Text((if (event.title.contains("prelim", true)) "PRELIMS • " else if (ppvMode) "PPV / EVENT • " else "") + SimpleDateFormat("EEE, MMM d • h:mm a", Locale.getDefault()).format(Date(event.startUtcMillis)), color = Color.LightGray, fontSize = 12.sp)
                                                     Text(event.state.name, color = if(event.state == GameState.LIVE) FreedomRed else Color.LightGray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                                 }
                                             }
