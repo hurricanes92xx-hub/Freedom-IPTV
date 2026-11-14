@@ -486,7 +486,6 @@ private fun FreedomApp() {
                                         val collegeTournament = playoff && (game.competitionId.startsWith("ncaam") || game.competitionId.startsWith("ncaaw"))
                                         val volleyballTournament = playoff && game.competitionId.startsWith("ncaavb")
                                         val baseballTournament = playoff && game.competitionId.startsWith("ncaabase")
-                                        val baseballTournament = playoff && game.competitionId.startsWith("ncaabase")
                                         val collegePostseason = collegeTournament || volleyballTournament
                                         val playoffGold = Color(0xFFFFD166)
                                         val ncaaBlue = Color(0xFF55C7FF)
