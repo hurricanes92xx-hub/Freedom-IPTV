@@ -1,4 +1,4 @@
-package com.hurricanes92.freedomiptv
+package com.hurricanes92xx.freedomiptv
 import android.graphics.Bitmap
 import android.graphics.Color
 import com.google.zxing.BarcodeFormat
