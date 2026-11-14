@@ -71,7 +71,7 @@ class CombatScheduleProvider(
         }
         if (p == CombatPromotion.TNA || p == CombatPromotion.WWE) {
             val text = doc.text()
-            val rx = if(p==CombatPromotion.TNA) Regex("(?i)(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+(\\d{1,2}).{0,100}?(Destination X|Thursday Night iMPACT|Hardy Party|\u005bA-Za-z0-9 !:’'-]{4,})") else Regex("(?i)(January|February|March|April|May|June|July|August|September|October|November|December)\\s+(\\d{1,2}),?\\s*(\\d{4})?.{0,80}?(Raw|SmackDown|NXT|WrestleMania|SummerSlam|Survivor Series|Royal Rumble|\u005bA-Za-z][^\\n]{3,})")
+            val rx = if(p==CombatPromotion.TNA) Regex("(?i)(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+(\\d{1,2}).{0,100}?([^\\n]{4,})") else Regex("(?i)(January|February|March|April|May|June|July|August|September|October|November|December)\\s+(\\d{1,2}),?\\s*(\\d{4})?.{0,80}?([^\\n]{3,})")
             for(m in rx.findAll(text)) {
                 val mon=runCatching { java.time.Month.from(DateTimeFormatter.ofPattern("MMM",java.util.Locale.US).parse(m.groupValues[1])) }.getOrNull() ?: continue
                 val day=m.groupValues[2].toIntOrNull() ?: continue; val yr=m.groupValues.getOrNull(3)?.toIntOrNull() ?: from.year
