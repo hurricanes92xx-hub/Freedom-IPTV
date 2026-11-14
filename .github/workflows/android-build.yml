@@ -504,7 +504,7 @@ jobs:
             "schedule merge deduplicates and sorts":"distinctBy { game" in repo and "sortedBy { it.startUtcMillis }" in repo,
             "last-known-good schedules survive empty upstream response":"merged.isNotEmpty()" in repo and "cached.games" in repo,
             "combat posters cached by stable event ID":"event.id to it" in ui and "artworkCache.putAll" in ui,
-            "art cache rejects non-http URL and retains existing entries on null":"startsWith(\"https://\")" in art and "if (url.isNullOrBlank()) return" in art,
+            "art cache rejects non-http URL and retains existing entries on null":"startsWith(\"https://\")" in art and "if (url.isNullOrBlank() ||" in art,
             "Hub event model carries team logos and event poster":"homeLogo" in models and "awayLogo" in models and "posterUrl" in models,
             "Hub cache serializes and restores all artwork fields":"put(\"homeLogo\",e.homeLogo)" in hub and "put(\"awayLogo\",e.awayLogo)" in hub and "put(\"poster\",e.posterUrl)" in hub,
             "Hub cache dedupes and caps records":"distinctBy { it.id }" in hub and "take(250)" in hub,
