@@ -535,7 +535,7 @@ private fun FreedomApp() {
                                                         game.clock?.let { Text(it, color = Color(0xFF9BA8BA), fontSize = 10.sp) }
                                                     }
                                                 }
-                                                val gameChannels = remember(game, channels) { gameChannelIndex.matchGame(game, networks = listOf("ESPN", "FOX", "CBS", "NBC", "TNT"), limit = 3) }
+                                                val gameChannels = gameChannelIndex.matchGame(game, networks = listOf("ESPN", "FOX", "CBS", "NBC", "TNT"), limit = 3)
                                                 if (gameChannels.isNotEmpty()) {
                                                     Column(Modifier.fillMaxWidth().padding(horizontal = 13.dp, vertical = 5.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                                         Text("MATCHED PROVIDER CHANNELS", color = accent, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = .8.sp)
