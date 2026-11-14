@@ -44,62 +44,10 @@ class CombatScheduleProvider(
                 } }.awaitAll().flatten()
             }
         }
+        // Only source-backed event listings are displayed. Recurring weekly-TV slots and
+        // manually dated "specials" were removed: they can drift or duplicate real events.
         schedule.filter { it.startUtcMillis in fromUtcMillis..toUtcMillis }
-            .plus(weeklyTelevision(promotion, start, end).filter { it.startUtcMillis in fromUtcMillis..toUtcMillis })
-            .plus(officialSpecials(promotion).filter { it.startUtcMillis in fromUtcMillis..toUtcMillis })
             .distinctBy { it.id }.sortedBy { it.startUtcMillis }
-    }
-
-    /** Confirmed major cards supplement sparse third-party Fighting listings. Keep only official announced dates. */
-    private fun officialSpecials(promotion: CombatPromotion): List<CombatEvent> {
-        val zone = ZoneId.of("America/New_York")
-        fun event(id: String, title: String, date: LocalDate, hour: Int, poster: String? = null) =
-            CombatEvent(id, promotion.id, title, date.atTime(hour, 0).atZone(zone).toInstant().toEpochMilli(), poster)
-        return when (promotion) {
-            CombatPromotion.WWE -> listOf(
-                event("wwe-survivor-series-2026", "WWE Survivor Series: WarGames 2026", LocalDate.of(2026,11,28),18,
-                    "https://commons.wikimedia.org/wiki/Special:FilePath/WWE_Survivor_Series_logo.svg")
-            )
-            CombatPromotion.AEW -> listOf(
-                event("aew-full-gear-2026", "AEW Full Gear 2026", LocalDate.of(2026,11,14),18,
-                    "https://commons.wikimedia.org/wiki/Special:FilePath/AEW_Full_Gear_logo.svg")
-            )
-            CombatPromotion.TNA -> listOf(
-                event("tna-destination-x-countdown-2026", "TNA Destination X Countdown", LocalDate.of(2026,11,15),18,
-                    "https://commons.wikimedia.org/wiki/Special:FilePath/Impact_Wrestling_Logo.svg"),
-                event("tna-destination-x-2026", "TNA Destination X 2026", LocalDate.of(2026,11,15),19,
-                    "https://commons.wikimedia.org/wiki/Special:FilePath/Impact_Wrestling_Logo.svg")
-            )
-            // UFC dates and times are exclusively ESPN scoreboard data; no manually
-            // entered future cards that can drift when the promotion changes its schedule.
-            CombatPromotion.UFC -> emptyList()
-            else -> emptyList()
-        }
-    }
-
-    /** Weekly TV slots supplement omitted event listings; these are broadcast times, not venue bell times. */
-    private fun weeklyTelevision(promotion: CombatPromotion, start: LocalDate, end: LocalDate): List<CombatEvent> {
-        val zone = ZoneId.of("America/New_York"); val out = mutableListOf<CombatEvent>(); var day = start
-        while (!day.isAfter(end)) {
-            val slot = when (promotion) {
-                CombatPromotion.WWE -> when (day.dayOfWeek) {
-                    DayOfWeek.MONDAY -> Triple("Monday Night Raw",20,"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/WWE_Raw_Logo_2019.svg/1280px-WWE_Raw_Logo_2019.svg.png")
-                    DayOfWeek.TUESDAY -> Triple("WWE NXT",20,"https://commons.wikimedia.org/wiki/Special:FilePath/WWE_NXT_2024_Logo.svg")
-                    DayOfWeek.FRIDAY -> Triple("WWE SmackDown",20,"https://commons.wikimedia.org/wiki/Special:FilePath/WWE_SmackDown_%282024%29_Logo.svg")
-                    else -> null
-                }
-                CombatPromotion.AEW -> when (day.dayOfWeek) {
-                    DayOfWeek.WEDNESDAY -> Triple("AEW Dynamite",20,"https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/AEW_Dynamite_logo_%28simplified%29.jpg/1280px-AEW_Dynamite_logo_%28simplified%29.jpg")
-                    DayOfWeek.SATURDAY -> Triple("AEW Collision",20,"https://commons.wikimedia.org/wiki/Special:FilePath/AEW_Collision_logo.svg")
-                    else -> null
-                }
-                CombatPromotion.TNA -> if (day.dayOfWeek == DayOfWeek.THURSDAY) Triple("TNA Thursday Night iMPACT!",21,"https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Thursday_Night_iMPACT%21.png/1280px-Thursday_Night_iMPACT%21.png") else null
-                else -> null
-            }
-            if (slot != null) out += CombatEvent("tv-\${promotion.id}-\$day",promotion.id,slot.first,day.atTime(slot.second,0).atZone(zone).toInstant().toEpochMilli(),slot.third)
-            day=day.plusDays(1)
-        }
-        return out
     }
 
     /** ESPN scoreboard range query: dates=YYYYMMDD-YYYYMMDD. */
