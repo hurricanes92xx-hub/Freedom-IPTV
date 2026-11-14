@@ -179,14 +179,21 @@ jobs:
                           "prelims1":"Prelims","prelims2":"Prelims","prelims":"Prelims",
                           "maincard":"Main Card","mainCard":"Main Card"}
               found = 0
+              main_bouts = []
               for key, label in segments.items():
                   card = cards.get(key) or {}
-                  for bout in card.get("competitions") or []:
+                  competitions = card.get("competitions") or []
+                  for index, bout in enumerate(competitions):
                       names = [((c.get("athlete") or {}).get("displayName") or
                                 (c.get("athlete") or {}).get("fullName") or "").strip()
                                for c in bout.get("competitors") or []]
                       if len([n for n in names if n]) == 2:
                           found += 1
+                          if label == "Main Card":
+                              main_bouts.append((index, len(competitions), bout))
+              # The app marks only the final bout in ESPN's Main Card bucket as Main Event.
+              if main_bouts and not any(index == total - 1 for index, total, _ in main_bouts):
+                  raise RuntimeError(f"UFC {eid}: Main Card has no final bout to mark as Main Event")
               if found:
                   verified += 1
                   print(f"UFC {eid}: {found} parsed bouts; card buckets={sorted(k for k in segments if cards.get(k))}")
