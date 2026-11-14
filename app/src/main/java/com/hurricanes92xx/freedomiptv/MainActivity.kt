@@ -533,6 +533,19 @@ private fun FreedomApp() {
                                                         game.clock?.let { Text(it, color = Color(0xFF9BA8BA), fontSize = 10.sp) }
                                                     }
                                                 }
+                                                val gameChannels = remember(game, channels) { gameChannelIndex.matchGame(game, networks = listOf("ESPN", "FOX", "CBS", "NBC", "TNT"), limit = 3) }
+                                                if (gameChannels.isNotEmpty()) {
+                                                    Column(Modifier.fillMaxWidth().padding(horizontal = 13.dp, vertical = 5.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                        Text("MATCHED PROVIDER CHANNELS", color = accent, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = .8.sp)
+                                                        gameChannels.forEach { candidate ->
+                                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                                Text(candidate.confidence.toString() + "% • " + candidate.channelName, color = Color(0xFFD8E2F0), fontSize = 11.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                                TextButton(onClick = { channels.firstOrNull { it.id == candidate.channelId }?.let { currentChannel = it; page = "Player" } }) { Text("▶ WATCH", color = FreedomRed, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                                                            }
+                                                            Text(candidate.reasons.joinToString(" • "), color = Color(0xFF8290A4), fontSize = 9.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                                        }
+                                                    }
+                                                }
                                                 if(collegePostseason) Row(Modifier.fillMaxWidth().background((if(volleyballTournament) Color(0xFF45245F) else Color(0xFF123B60)).copy(alpha = .55f), RoundedCornerShape(bottomStart = 15.dp, bottomEnd = 15.dp)).padding(horizontal = 13.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                                                     Text(if(volleyballTournament) "NCAA CHAMPIONSHIP • EVERY SET COUNTS" else "SINGLE-ELIMINATION • WIN OR GO HOME", color = if(volleyballTournament) Color(0xFFD9C1FF) else Color(0xFF9CCFEF), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = .5.sp)
                                                 }
