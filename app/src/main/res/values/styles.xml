@@ -5,6 +5,6 @@
         <item name="android:windowSplashScreenBackground">#080B10</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/freedom_logo</item>
         <item name="android:windowSplashScreenIconBackgroundColor">#10223E</item>
-        <item name="android:postSplashScreenTheme">@android:style/Theme.Material.Light.NoActionBar</item>
+        
     </style>
 </resources>
