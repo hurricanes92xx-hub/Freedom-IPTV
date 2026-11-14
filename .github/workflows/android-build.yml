@@ -498,6 +498,8 @@ jobs:
           hub=(root/"sports/data/SportsHubCache.kt").read_text()
           models=(root/"sports/model/SportsHubModels.kt").read_text()
           ui=(root/"MainActivity.kt").read_text()
+          ncaa=(root/"sports/data/NcaaScheduleProvider.kt").read_text()
+          catalog=(root/"sports/model/SportModels.kt").read_text()
           checks={
             "ESPN schedule requests each UTC date in requested interval":"dates.chunked(4)" in espn and "dates=$day" in espn,
             "schedule output clipped to requested exact timestamps":"it.startUtcMillis in fromUtcMillis..toUtcMillis" in espn,
@@ -509,6 +511,8 @@ jobs:
             "Hub cache serializes and restores all artwork fields":"put(\"homeLogo\",e.homeLogo)" in hub and "put(\"awayLogo\",e.awayLogo)" in hub and "put(\"poster\",e.posterUrl)" in hub,
             "Hub cache dedupes and caps records":"distinctBy { it.id }" in hub and "take(250)" in hub,
             "schedule refresh/live score UI does not discard old rows on empty live feed":"if (live.isNotEmpty()) scheduledGames = scheduledGames.map" in ui,
+            "NCAA D1-D3 men/women schedules have scoreboard and bracket routes":all(x in ncaa for x in ["NCAAM_D1 to \"basketball-men/d1\"","NCAAM_D2 to \"basketball-men/d2\"","NCAAM_D3 to \"basketball-men/d3\"","NCAAW_D1 to \"basketball-women/d1\"","NCAAW_D2 to \"basketball-women/d2\"","NCAAW_D3 to \"basketball-women/d3\""]) and "bracketRoutes" in ncaa,
+            "supported seasonal leagues are cataloged without fixed event dates":all(x in catalog for x in ["NCAAVB_W","NCAABASE","NCAAGYM_W","NFL","NBA","MLB","NHL","WNBA","MLS","EPL","UCL"]) and "startUtcMillis" in espn and "dates=$day" in espn,
           }
           for name, ok in checks.items():
             print(("PASS" if ok else "FAIL")+": "+name)
