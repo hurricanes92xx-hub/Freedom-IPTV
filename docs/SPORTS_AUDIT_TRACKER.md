@@ -1,6 +1,6 @@
 # Freedom IPTV Sports Audit Tracker (single source of truth)
 
-Updated: 2026-11-14 (source-only combat schedules)
+Updated: 2026-11-14 (official wrestling calendar integration in progress)
 
 ## Completed audit-management work
 
@@ -29,8 +29,8 @@ This is the **only checklist for audit completion**. Other sports documents are 
 | Women's gymnastics | Road to Nationals schedule/ranking smoke + ESPN fallback | **Code/UI checked:** RTN schedule is filtered against Div I team ranking rows; kickoff parsing uses America/New_York (DST-aware); meet descriptions map conference/regionals/NCAA round labels into 🏆 schedule cards. 2026 feed inspected | Need live meet card/device validation and confirm edge-case description strings |
 | Combat: UFC | ESPN event/bout parser + Combat provider event path | **ESPN schedule-source refactor + sample cross-check (Nov 14):** UFC event dates/times now only ESPN scoreboard date-range query; no hardcoded future events or SportsDB fallback. CI now asserts upcoming ESPN dated events and samples next upcoming Fightcenter card. ESPN/UFC schedule cross-check: UFC 334 Nov 14 (Early Prelims 5pm, Prelims 7pm, Main 9pm ET); Fight Night Nov 21 (Prelims 10am, Main 1pm); Dec 5 Fight Night (10am/1pm); UFC 335 Dec 12 (5pm/7pm/9pm). Fightcenter bouts render segment, weight class, matchup, Main Event marker; CI now checks Main Card final-bout position. Removed manually dated combat specials and weekly TV placeholders across WWE/AEW/TNA; promotions now appear only when sourced from actual event-day listings (ESPN for UFC). No recurring/hardcoded calendar entries remain | CI and ESPN live event/card validation; verify actual device UI; confirm third-party feed completeness for wrestling |
 | Combat: Boxing | Combat provider / SportsDB event path | **Checked:** Nov 14 Viddal Riley–Seydi Coupe and Nov 20 Lauren Price–Michaela Kotaskova found on WBC/BBC calendars; SportsDB Fighting feed coverage still unverified | Validate app events against date samples; no comprehensive boxing calendar source |
-| Combat: WWE | SportsDB + recurring TV supplements | **Checked:** Nov 9 Raw, Nov 13 SmackDown, weekly Tuesday NXT cadence, and Nov 28 Survivor Series confirmed; provider slots are recurring placeholders, not event-feed completeness | Runtime date/title display + source event dedupe |
-| Combat: AEW | SportsDB + recurring TV supplements | **Checked:** Nov 11 Dynamite/Collision special and Nov 14 Full Gear verified against AEW schedule; weekly slots may misstate special combined/shifted broadcasts | Runtime schedule accuracy and PPV dedupe |
+| Combat: WWE | WWE official events calendar + TheSportsDB fallback (planned; endpoint registered only) | Official endpoint identified; live parser not yet integrated. No recurring TV placeholders remain. | Parse official dated events, preserve TheSportsDB poster fallback, validate dates/time zones and dedupe |
+| Combat: AEW | AEW official events calendar + TheSportsDB fallback (planned; endpoint registered only) | Official endpoint identified; live parser not yet integrated. No recurring TV placeholders remain. | Parse actual combined/shifted broadcasts and PPVs; preserve poster fallback and dedupe |
 | Combat: TNA | SportsDB + recurring TV supplements | **Checked:** Nov 12 Impact and Nov 15 Destination X confirmed; weekly Thursday placeholder matches current broadcast cadence | Runtime display + special-event dedupe/source timing |
 
 ## Completed sport-audit evidence (do not repeat)
