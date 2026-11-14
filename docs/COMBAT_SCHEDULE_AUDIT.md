@@ -6,7 +6,7 @@
 
 - UFC is ESPN scoreboard date-range only, with Fightcenter card buckets for bout details; it does not use TheSportsDB or hardcoded future dates.
 - WWE/AEW/TNA query TheSportsDB Fighting events in bounded batches (four concurrent dates) and filter event metadata by promotion. Recurring TV placeholders and manually dated supplements have been removed.
-- Official WWE (`wwe.com/events`), AEW (`allelitewrestling.com/aew-events`), and TNA (`tnawrestling.com/events`) calendar endpoints are identified in code, but HTML parsing/fallback integration is still pending. The URL helper alone does not yet make these calendars schedule sources.
+- Official WWE (`wwe.com/events`), AEW (`allelitewrestling.com/aew-events`), and TNA (`tnawrestling.com/events`) calendar parsers are integrated in `CombatScheduleProvider`; official dated records are merged with TheSportsDB fallback, and duplicate title/date records are suppressed. Nov 14 source spot-check: WWE Nov 13/16/20/23 dates; AEW Full Gear Nov 14, Nov 18/21/25, Dec 5/19 dates; TNA Destination X Nov 15 and Calgary Nov 18–19. Parser-to-device exact parity/timezone remains unverified.
 - UFC event supplements now distinguish **Early Prelims**, **Prelims**, and **Main Card** for UFC 334; the November/December Fight Night fixtures have prelim and main-broadcast entries; UFC 335 has a prelim slot.
 - WWE/AEW/TNA television slots are broadcast listings, not venue start times. Countdown/pre-show labels must remain distinct from the main PPV event.
 - UFC prelims are schedule rows, not a guarantee that every prelim bout is represented.
