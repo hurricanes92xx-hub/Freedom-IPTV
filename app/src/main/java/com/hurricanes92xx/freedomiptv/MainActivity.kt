@@ -10,6 +10,8 @@ import com.hurricanes92xx.freedomiptv.sports.model.CombatEvent
 import com.hurricanes92xx.freedomiptv.sports.model.CombatPromotion
 
 import android.os.Bundle
+import android.graphics.Bitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import android.net.Uri
 import org.json.JSONArray
 import androidx.activity.ComponentActivity
@@ -94,6 +96,8 @@ private fun FreedomApp() {
     var password by remember { mutableStateOf("") }
     var providerLoaded by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
+    var phoneLink by remember { mutableStateOf<PhoneLinkServer?>(null) }
+    var phoneQr by remember { mutableStateOf<Bitmap?>(null) }
     var result by remember { mutableStateOf<String?>(null) }
     var connected by remember { mutableStateOf(false) }
     var credentials by remember { mutableStateOf<XtreamCredentials?>(null) }
@@ -167,6 +171,23 @@ private fun FreedomApp() {
         }
     }
     fun updateFavorites(next: Set<String>) { favorites = next; scope.launch { context.favoriteStore.edit { prefs -> prefs[FAVORITE_IDS] = next } } }
+    fun connectProviderDetails(inputServer: String, inputUsername: String, inputPassword: String) {
+        server = inputServer; username = inputUsername; password = inputPassword
+        phoneLink?.stop(); phoneLink = null; phoneQr = null; busy = true; result = "Connecting provider from phone…"
+        scope.launch {
+            try {
+                val creds = XtreamCredentials(inputServer.trim(), inputUsername.trim(), inputPassword)
+                val auth = api.authenticate(creds); val catalog = api.loadLiveCatalog(creds)
+                credentials = creds; categories = catalog.categories; channels = catalog.channels
+                check(CredentialVault(context).savePassword(creds.password)) { "Could not securely save provider password." }
+                context.favoriteStore.edit { prefs -> prefs[PROVIDER_SERVER] = creds.server; prefs[PROVIDER_USERNAME] = creds.username; prefs.remove(LEGACY_PROVIDER_PASSWORD) }
+                connected = true; selectedCategory = "all"; page = "Live TV"
+                result = "Loaded ${catalog.channels.size} channels • ${catalog.categories.size} categories • ${auth.status ?: "Active"}"
+            } catch (e: Exception) { connected = false; result = e.message ?: "Connection failed." }
+            finally { busy = false }
+        }
+    }
+    DisposableEffect(phoneLink) { onDispose { phoneLink?.stop() } }
     val mediaPlayer = remember { FreedomPlayer(context) }
     DisposableEffect(mediaPlayer) { onDispose { mediaPlayer.release() } }
     LaunchedEffect(currentChannel?.id, currentChannel?.streamUrl, vodPlayingUrl) { val url = vodPlayingUrl ?: currentChannel?.streamUrl; if (url != null) mediaPlayer.play(currentChannel?.id ?: selectedVod?.id ?: "vod", url) }
@@ -208,32 +229,33 @@ private fun FreedomApp() {
                     "Add Provider" -> Card(colors = CardDefaults.cardColors(containerColor = Panel), modifier = Modifier.widthIn(max = 620.dp).fillMaxWidth()) {
                         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                             Text("Connect your Xtream provider", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedButton(enabled = phoneLink == null && !busy, onClick = {
+                                    try {
+                                        val link = PhoneLinkServer { s, u, p -> connectProviderDetails(s, u, p) }
+                                        link.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false); phoneLink = link; phoneQr = link.qr()
+                                        result = if (link.url == null) "Could not find TV Wi-Fi address." else "Scan QR with phone on same Wi-Fi."
+                                    } catch (e: Exception) { result = "Phone link failed: " + (e.message ?: "port unavailable") }
+                                }) { Text(if (phoneLink == null) "Link Phone (QR)" else "Pairing active") }
+                                if (phoneLink != null) TextButton(onClick = { phoneLink?.stop(); phoneLink = null; phoneQr = null; result = "Phone pairing canceled." }) { Text("Cancel", color = FreedomRed) }
+                            }
+                            phoneLink?.let { link ->
+                                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF202936))) {
+                                    Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text("SCAN WITH YOUR PHONE", color = Color.White, fontWeight = FontWeight.Bold)
+                                        phoneQr?.let { bmp -> androidx.compose.foundation.Image(bmp.asImageBitmap(), contentDescription = "Freedom Link QR code", modifier = Modifier.size(220.dp)) }
+                                        Text("TV pairing code: " + link.pin, color = FreedomRed, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                                        Text(link.url ?: "Phone and TV must share Wi-Fi", color = Color.LightGray)
+                                        Text("Expires in 10 minutes • one use", color = Color.LightGray, fontSize = 12.sp)
+                                    }
+                                }
+                            }
                             Text("Use the HTTPS server address and credentials from your IPTV service.", color = Color.LightGray)
                             OutlinedTextField(server, { server = it; result = null }, modifier = Modifier.fillMaxWidth(), label = { Text("Server URL (https://)") }, singleLine = true)
                             OutlinedTextField(username, { username = it; result = null }, modifier = Modifier.fillMaxWidth(), label = { Text("Username") }, singleLine = true)
                             OutlinedTextField(password, { password = it; result = null }, modifier = Modifier.fillMaxWidth(), label = { Text("Password") }, singleLine = true, visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation())
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Button(enabled = !busy, onClick = {
-                                    busy = true; result = null
-                                    scope.launch {
-                                        try {
-                                            val creds = XtreamCredentials(server.trim(), username.trim(), password)
-                                            val auth = api.authenticate(creds)
-                                            val catalog = api.loadLiveCatalog(creds)
-                                            credentials = creds; categories = catalog.categories; channels = catalog.channels
-                                            // Save secret first; publish metadata only after encrypted write succeeds.
-                                            check(CredentialVault(context).savePassword(creds.password)) { "Could not securely save provider password." }
-                                            context.favoriteStore.edit { prefs ->
-                                                prefs[PROVIDER_SERVER] = creds.server
-                                                prefs[PROVIDER_USERNAME] = creds.username
-                                                prefs.remove(LEGACY_PROVIDER_PASSWORD)
-                                            }
-                                            connected = true; selectedCategory = "all"; page = "Live TV"
-                                            result = "Loaded ${catalog.channels.size} channels • ${catalog.categories.size} categories • ${auth.status ?: "Active"}"
-                                        } catch (e: Exception) { connected = false; result = e.message ?: "Connection failed." }
-                                        finally { busy = false }
-                                    }
-                                }) { Text(if (busy) "Loading provider…" else "Connect & Load") }
+                                Button(enabled = !busy, onClick = { connectProviderDetails(server, username, password) }) { Text(if (busy) "Connecting…" else "Connect & Load") }
                                 OutlinedButton(onClick = { server = "https://"; username = ""; password = ""; result = null }) { Text("Clear") }
                                 OutlinedButton(enabled = !busy, onClick = {
                                     scope.launch {
