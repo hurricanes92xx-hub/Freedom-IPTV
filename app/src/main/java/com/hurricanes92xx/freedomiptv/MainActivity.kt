@@ -484,33 +484,36 @@ private fun FreedomApp() {
                                     else filteredGames.take(20).forEach { game ->
                                         val playoff = !game.postseasonRound.isNullOrBlank()
                                         val collegeTournament = playoff && (game.competitionId.startsWith("ncaam") || game.competitionId.startsWith("ncaaw"))
+                                        val volleyballTournament = playoff && game.competitionId.startsWith("ncaavb")
+                                        val collegePostseason = collegeTournament || volleyballTournament
                                         val playoffGold = Color(0xFFFFD166)
                                         val ncaaBlue = Color(0xFF55C7FF)
-                                        val accent = if(collegeTournament) ncaaBlue else playoffGold
+                                        val volleyballPurple = Color(0xFFC69BFF)
+                                        val accent = if(volleyballTournament) volleyballPurple else if(collegeTournament) ncaaBlue else playoffGold
                                         Card(
-                                            colors = CardDefaults.cardColors(containerColor = if(collegeTournament) Color(0xFF0B1D32) else when { game.state == GameState.LIVE && playoff -> Color(0xFF332719); game.state == GameState.LIVE -> Color(0xFF2B1820); playoff -> Color(0xFF211D16); else -> Panel }),
-                                            shape = RoundedCornerShape(if(collegeTournament) 20.dp else if(playoff) 18.dp else 14.dp),
-                                            modifier = Modifier.fillMaxWidth().then(if(playoff) Modifier.border(if(collegeTournament) 2.dp else 1.5.dp, accent.copy(alpha = .9f), RoundedCornerShape(if(collegeTournament) 20.dp else 18.dp)) else Modifier)
+                                            colors = CardDefaults.cardColors(containerColor = if(volleyballTournament) Color(0xFF211333) else if(collegeTournament) Color(0xFF0B1D32) else when { game.state == GameState.LIVE && playoff -> Color(0xFF332719); game.state == GameState.LIVE -> Color(0xFF2B1820); playoff -> Color(0xFF211D16); else -> Panel }),
+                                            shape = RoundedCornerShape(if(collegePostseason) 20.dp else if(playoff) 18.dp else 14.dp),
+                                            modifier = Modifier.fillMaxWidth().then(if(playoff) Modifier.border(if(collegePostseason) 2.dp else 1.5.dp, accent.copy(alpha = .9f), RoundedCornerShape(if(collegePostseason) 20.dp else 18.dp)) else Modifier)
                                         ) {
                                             Column(Modifier.padding(if(playoff) 3.dp else 0.dp)) {
                                                 if(collegeTournament) {
                                                     Row(Modifier.fillMaxWidth().background(Color(0xFF123B60), RoundedCornerShape(topStart = 17.dp, topEnd = 17.dp)).padding(horizontal = 13.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                        Text("🏀 NCAA TOURNAMENT", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                                                        Text(if(volleyballTournament) "🏐 NCAA VOLLEYBALL" else "🏀 NCAA TOURNAMENT", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                                                         Spacer(Modifier.weight(1f))
-                                                        Text("MARCH MADNESS", color = ncaaBlue, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                                                        Text(if(volleyballTournament) "CHAMPIONSHIP" else "MARCH MADNESS", color = accent, fontSize = 9.sp, fontWeight = FontWeight.Black)
                                                     }
-                                                    Row(Modifier.fillMaxWidth().background(Color(0xFF071526)).padding(horizontal = 13.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                        Text("BRACKET • ", color = ncaaBlue, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                                                    Row(Modifier.fillMaxWidth().background(if(volleyballTournament) Color(0xFF160D24) else Color(0xFF071526)).padding(horizontal = 13.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                        Text(if(volleyballTournament) "🏐 BRACKET • " else "BRACKET • ", color = accent, fontSize = 10.sp, fontWeight = FontWeight.Black)
                                                         Text(game.postseasonRound.orEmpty().uppercase(), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                         Spacer(Modifier.weight(1f))
-                                                        Text("ROAD TO THE TITLE", color = Color(0xFF8DAFCB), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                                        Text(if(volleyballTournament) "FINAL FOUR" else "ROAD TO THE TITLE", color = Color(0xFFBBA1D5), fontSize = 8.sp, fontWeight = FontWeight.Bold)
                                                     }
                                                 } else if(playoff) Row(Modifier.fillMaxWidth().background(playoffGold.copy(alpha = .12f), RoundedCornerShape(topStart = 15.dp, topEnd = 15.dp)).padding(horizontal = 12.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
                                                     Text("🏆 POSTSEASON", color = playoffGold, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp)
                                                     Spacer(Modifier.width(8.dp))
                                                     Text(game.postseasonRound.orEmpty().uppercase(), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                 }
-                                                Row(Modifier.padding(if(collegeTournament) 14.dp else 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                Row(Modifier.padding(if(collegePostseason) 14.dp else 12.dp), verticalAlignment = Alignment.CenterVertically) {
                                                     AsyncImage(model = game.away.logoUrl, contentDescription = game.away.name, modifier = Modifier.size(if(playoff) 48.dp else 42.dp))
                                                     Column(Modifier.padding(horizontal = 10.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                                         Text("${game.away.shortName ?: game.away.name}  vs  ${game.home.shortName ?: game.home.name}", color = Color.White, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -526,8 +529,8 @@ private fun FreedomApp() {
                                                         game.clock?.let { Text(it, color = Color(0xFF9BA8BA), fontSize = 10.sp) }
                                                     }
                                                 }
-                                                if(collegeTournament) Row(Modifier.fillMaxWidth().background(Color(0xFF123B60).copy(alpha = .55f), RoundedCornerShape(bottomStart = 15.dp, bottomEnd = 15.dp)).padding(horizontal = 13.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                    Text("SINGLE-ELIMINATION • WIN OR GO HOME", color = Color(0xFF9CCFEF), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = .5.sp)
+                                                if(collegePostseason) Row(Modifier.fillMaxWidth().background((if(volleyballTournament) Color(0xFF45245F) else Color(0xFF123B60)).copy(alpha = .55f), RoundedCornerShape(bottomStart = 15.dp, bottomEnd = 15.dp)).padding(horizontal = 13.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                    Text(if(volleyballTournament) "NCAA CHAMPIONSHIP • EVERY SET COUNTS" else "SINGLE-ELIMINATION • WIN OR GO HOME", color = if(volleyballTournament) Color(0xFFD9C1FF) else Color(0xFF9CCFEF), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = .5.sp)
                                                 }
                                             }
                                         }
