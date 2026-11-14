@@ -53,34 +53,55 @@ class CombatScheduleProvider(
     private fun officialCalendarUrl(promotion: CombatPromotion): String? = when (promotion) { CombatPromotion.WWE -> "https://www.wwe.com/events"; CombatPromotion.AEW -> "https://www.allelitewrestling.com/aew-events"; CombatPromotion.TNA -> "https://tnawrestling.com/events/"; else -> null }
 
     private fun normalize(s: String) = s.lowercase().replace(Regex("[^a-z0-9]"), "")
+    /** Parse real dated cards from each promotion's official event calendar. */
     private fun fetchOfficial(p: CombatPromotion, from: LocalDate, to: LocalDate): List<CombatEvent> {
         val url = officialCalendarUrl(p) ?: return emptyList()
-        val doc = Jsoup.connect(url).userAgent("FreedomIPTV/1.0").timeout(9000).get()
-        val hs = doc.select("h2").map { it.text().trim() }
+        val doc = Jsoup.connect(url).userAgent("FreedomIPTV/1.0").timeout(12000).get()
         val out = mutableListOf<CombatEvent>()
-        if (p == CombatPromotion.AEW) for (i in hs.indices) {
-            val m = Regex("(?i)([A-Z]+)\\s+(\\d{1,2}),?\\s+(\\d{4})").find(hs[i]) ?: continue
-            val date = runCatching { LocalDate.of(m.groupValues[3].toInt(), java.time.Month.valueOf(m.groupValues[1].uppercase()), m.groupValues[2].toInt()) }.getOrNull() ?: continue
-            val title = hs.getOrNull(i+1) ?: continue
-            if (date !in from.minusDays(1)..to.plusDays(1)) continue
-            val time = hs.getOrNull(i+7).orEmpty()
-            val zone = when { time.contains("MT") -> "America/Denver"; time.contains("CT") -> "America/Chicago"; time.contains("PT") -> "America/Los_Angeles"; else -> "America/New_York" }
-            val tm = Regex("(\\d{1,2}:\\d{2})(AM|PM)?", RegexOption.IGNORE_CASE).find(time)
-            val lt = tm?.let { runCatching { java.time.LocalTime.parse(it.groupValues[1]) }.getOrNull()?.let { t -> if(it.groupValues[2].isNotBlank()) t.withHour(t.hour%12+if(it.groupValues[2].equals("PM",true))12 else 0) else t } } ?: java.time.LocalTime.NOON
-            out += CombatEvent("official-aew-$date-${normalize(title)}", p.id, title, date.atTime(lt).atZone(java.time.ZoneId.of(zone)).toInstant().toEpochMilli())
+        fun add(date: LocalDate, title: String, localTime: java.time.LocalTime = java.time.LocalTime.of(20,0), zone: String = "America/New_York") {
+            if (date !in from.minusDays(1)..to.plusDays(1) || title.isBlank()) return
+            val clean = title.trim().replace(Regex("\\s+"), " ")
+            out += CombatEvent("official-${p.id}-${date}-${normalize(clean)}", p.id, clean,
+                date.atTime(localTime).atZone(ZoneId.of(zone)).toInstant().toEpochMilli())
         }
-        if (p == CombatPromotion.TNA || p == CombatPromotion.WWE) {
+        if (p == CombatPromotion.AEW) {
+            // AEW calendar uses a date heading followed by event title, city and local start.
+            val nodes = doc.select("h1,h2,h3,h4")
+            for (i in nodes.indices) {
+                val dateText = nodes[i].text().trim()
+                val m = Regex("(?i)(January|February|March|April|May|June|July|August|September|October|November|December)\\s+(\\d{1,2}),?\\s+(\\d{4})").find(dateText) ?: continue
+                val date = runCatching { LocalDate.of(m.groupValues[3].toInt(), java.time.Month.valueOf(m.groupValues[1].uppercase()), m.groupValues[2].toInt()) }.getOrNull() ?: continue
+                val title = (i+1 until minOf(i+5,nodes.size)).map { nodes[it].text().trim() }.firstOrNull { it.contains("AEW",true) || it.contains("ROH",true) || it.contains("Collision",true) || it.contains("Dynamite",true) || it.contains("Wrestling",true) } ?: continue
+                val block = nodes[i].parent()?.parent()?.text().orEmpty()
+                val tm = Regex("(\\d{1,2}):(\\d{2})\\s*(AM|PM)?\\s*(ET|CT|MT|PT)",RegexOption.IGNORE_CASE).find(block)
+                val local = tm?.let { runCatching { java.time.LocalTime.of((it.groupValues[1].toInt()%12)+(if(it.groupValues[3].equals("PM",true))12 else 0),it.groupValues[2].toInt()) }.getOrNull() } ?: java.time.LocalTime.of(20,0)
+                val zone = when(tm?.groupValues?.get(4)?.uppercase()) { "CT"->"America/Chicago"; "MT"->"America/Denver"; "PT"->"America/Los_Angeles"; else->"America/New_York" }
+                add(date,title,local,zone)
+            }
+        } else {
+            // WWE/TNA pages expose event listings in readable text; parse each dated line
+            // and use the adjacent event label, never recurring weekday placeholders.
             val text = doc.text()
-            val rx = if(p==CombatPromotion.TNA) Regex("(?i)(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+(\\d{1,2}).{0,100}?([^\\n]{4,})") else Regex("(?i)(January|February|March|April|May|June|July|August|September|October|November|December)\\s+(\\d{1,2}),?\\s*(\\d{4})?.{0,80}?([^\\n]{3,})")
-            for(m in rx.findAll(text)) {
-                val mon=runCatching { java.time.Month.from(DateTimeFormatter.ofPattern("MMM",java.util.Locale.US).parse(m.groupValues[1])) }.getOrNull() ?: continue
-                val day=m.groupValues[2].toIntOrNull() ?: continue; val yr=m.groupValues.getOrNull(3)?.toIntOrNull() ?: from.year
-                val d=runCatching { LocalDate.of(yr,mon,day) }.getOrNull() ?: continue; if(d !in from.minusDays(1)..to.plusDays(1)) continue
-                out += CombatEvent("official-${p.id}-$d-${normalize(m.groupValues.last())}",p.id,m.groupValues.last().trim(),d.atTime(20,0).atZone(java.time.ZoneId.of("America/New_York")).toInstant().toEpochMilli())
+            val month = "(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)"
+            val rx = Regex("(?i)$month\\s+(\\d{1,2})(?:,\\s*(\\d{4}))?")
+            for (m in rx.findAll(text)) {
+                val mon = runCatching { java.time.Month.from(DateTimeFormatter.ofPattern("MMM",java.util.Locale.US).parse(m.groupValues[1].take(3))) }.getOrNull() ?: continue
+                val day = m.groupValues[2].toIntOrNull() ?: continue
+                val year = m.groupValues[3].toIntOrNull() ?: from.year
+                val date = runCatching { LocalDate.of(year,mon,day) }.getOrNull() ?: continue
+                if (date !in from.minusDays(1)..to.plusDays(1)) continue
+                val nearby = text.substring(m.range.last+1,minOf(text.length,m.range.last+100)).substringBefore("\\n").trim()
+                val title = when(p) {
+                    CombatPromotion.TNA -> nearby.takeIf { it.length in 3..100 } ?: "TNA Event"
+                    CombatPromotion.WWE -> nearby.takeIf { it.length in 3..100 && (it.contains("WWE",true)||it.contains("SmackDown",true)||it.contains("RAW",true)||it.contains("NXT",true)||it.contains("Series",true)) } ?: "WWE Event"
+                    else -> nearby
+                }
+                add(date,title)
             }
         }
         return out.distinctBy { it.startUtcMillis to normalize(it.title) }
     }
+
     /** ESPN scoreboard range query: dates=YYYYMMDD-YYYYMMDD. */
     private fun fetchEspnUfcRange(start: LocalDate, end: LocalDate): List<CombatEvent> {
         val dates = "${start.format(DateTimeFormatter.BASIC_ISO_DATE)}-${end.format(DateTimeFormatter.BASIC_ISO_DATE)}"
