@@ -10,6 +10,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
+import org.jsoup.Jsoup
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZoneId
@@ -33,25 +34,53 @@ class CombatScheduleProvider(
         val days = generateSequence(start) { it.plusDays(1) }.takeWhile { !it.isAfter(end) }.take(31).toList()
         // ESPN's scoreboard accepts a date range. One range request is faster and keeps
         // UFC event dates/times sourced from ESPN instead of a hand-maintained calendar.
-        val schedule = if (promotion == CombatPromotion.UFC) {
-            runCatching { fetchEspnUfcRange(start, end) }.getOrDefault(emptyList())
-        } else {
-            days.chunked(4).flatMap { batch ->
-                batch.map { day -> async(Dispatchers.IO) {
-                    val date = day.format(DateTimeFormatter.ISO_LOCAL_DATE)
-                    val url = "https://www.thesportsdb.com/api/v1/json/$apiKey/eventsday.php?d=$date&s=" + URLEncoder.encode("Fighting", "UTF-8")
-                    runCatching { fetch(url, promotion) }.getOrDefault(emptyList())
-                } }.awaitAll().flatten()
-            }
+        val fallback = if (promotion == CombatPromotion.UFC) emptyList() else days.chunked(4).flatMap { batch ->
+            batch.map { day -> async(Dispatchers.IO) {
+                val date = day.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                val url = "https://www.thesportsdb.com/api/v1/json/$apiKey/eventsday.php?d=$date&s=" + URLEncoder.encode("Fighting", "UTF-8")
+                runCatching { fetch(url, promotion) }.getOrDefault(emptyList())
+            } }.awaitAll().flatten()
         }
-        // Only source-backed event listings are displayed. Recurring weekly-TV slots and
-        // manually dated "specials" were removed: they can drift or duplicate real events.
+        val schedule = if (promotion == CombatPromotion.UFC) runCatching { fetchEspnUfcRange(start, end) }.getOrDefault(emptyList()) else {
+            val official = runCatching { fetchOfficial(promotion, start, end) }.getOrDefault(emptyList())
+            official.map { e -> e.copy(posterUrl = e.posterUrl ?: fallback.firstOrNull { it.startUtcMillis == e.startUtcMillis }?.posterUrl) } +
+                fallback.filterNot { old -> official.any { it.startUtcMillis == old.startUtcMillis && normalize(it.title)==normalize(old.title) } }
+        }
         schedule.filter { it.startUtcMillis in fromUtcMillis..toUtcMillis }
             .distinctBy { it.id }.sortedBy { it.startUtcMillis }
     }
 
     private fun officialCalendarUrl(promotion: CombatPromotion): String? = when (promotion) { CombatPromotion.WWE -> "https://www.wwe.com/events"; CombatPromotion.AEW -> "https://www.allelitewrestling.com/aew-events"; CombatPromotion.TNA -> "https://tnawrestling.com/events/"; else -> null }
 
+    private fun normalize(s: String) = s.lowercase().replace(Regex("[^a-z0-9]"), "")
+    private fun fetchOfficial(p: CombatPromotion, from: LocalDate, to: LocalDate): List<CombatEvent> {
+        val url = officialCalendarUrl(p) ?: return emptyList()
+        val doc = Jsoup.connect(url).userAgent("FreedomIPTV/1.0").timeout(9000).get()
+        val hs = doc.select("h2").map { it.text().trim() }
+        val out = mutableListOf<CombatEvent>()
+        if (p == CombatPromotion.AEW) for (i in hs.indices) {
+            val m = Regex("(?i)([A-Z]+)\\s+(\\d{1,2}),?\\s+(\\d{4})").find(hs[i]) ?: continue
+            val date = runCatching { LocalDate.of(m.groupValues[3].toInt(), java.time.Month.valueOf(m.groupValues[1].uppercase()), m.groupValues[2].toInt()) }.getOrNull() ?: continue
+            val title = hs.getOrNull(i+1) ?: continue
+            if (date !in from.minusDays(1)..to.plusDays(1)) continue
+            val time = hs.getOrNull(i+7).orEmpty()
+            val zone = when { time.contains("MT") -> "America/Denver"; time.contains("CT") -> "America/Chicago"; time.contains("PT") -> "America/Los_Angeles"; else -> "America/New_York" }
+            val tm = Regex("(\\d{1,2}:\\d{2})(AM|PM)?", RegexOption.IGNORE_CASE).find(time)
+            val lt = tm?.let { runCatching { java.time.LocalTime.parse(it.groupValues[1]) }.getOrNull()?.let { t -> if(it.groupValues[2].isNotBlank()) t.withHour(t.hour%12+if(it.groupValues[2].equals("PM",true))12 else 0) else t } } ?: java.time.LocalTime.NOON
+            out += CombatEvent("official-aew-$date-${normalize(title)}", p.id, title, date.atTime(lt).atZone(java.time.ZoneId.of(zone)).toInstant().toEpochMilli())
+        }
+        if (p == CombatPromotion.TNA || p == CombatPromotion.WWE) {
+            val text = doc.text()
+            val rx = if(p==CombatPromotion.TNA) Regex("(?i)(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\s+(\\d{1,2}).{0,100}?(Destination X|Thursday Night iMPACT|Hardy Party|\u005bA-Za-z0-9 !:’'-]{4,})") else Regex("(?i)(January|February|March|April|May|June|July|August|September|October|November|December)\\s+(\\d{1,2}),?\\s*(\\d{4})?.{0,80}?(Raw|SmackDown|NXT|WrestleMania|SummerSlam|Survivor Series|Royal Rumble|\u005bA-Za-z][^\\n]{3,})")
+            for(m in rx.findAll(text)) {
+                val mon=runCatching { java.time.Month.from(DateTimeFormatter.ofPattern("MMM",java.util.Locale.US).parse(m.groupValues[1])) }.getOrNull() ?: continue
+                val day=m.groupValues[2].toIntOrNull() ?: continue; val yr=m.groupValues.getOrNull(3)?.toIntOrNull() ?: from.year
+                val d=runCatching { LocalDate.of(yr,mon,day) }.getOrNull() ?: continue; if(d !in from.minusDays(1)..to.plusDays(1)) continue
+                out += CombatEvent("official-${p.id}-$d-${normalize(m.groupValues.last())}",p.id,m.groupValues.last().trim(),d.atTime(20,0).atZone(java.time.ZoneId.of("America/New_York")).toInstant().toEpochMilli())
+            }
+        }
+        return out.distinctBy { it.startUtcMillis to normalize(it.title) }
+    }
     /** ESPN scoreboard range query: dates=YYYYMMDD-YYYYMMDD. */
     private fun fetchEspnUfcRange(start: LocalDate, end: LocalDate): List<CombatEvent> {
         val dates = "${start.format(DateTimeFormatter.BASIC_ISO_DATE)}-${end.format(DateTimeFormatter.BASIC_ISO_DATE)}"
