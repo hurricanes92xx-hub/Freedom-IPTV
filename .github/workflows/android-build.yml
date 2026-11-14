@@ -487,6 +487,35 @@ jobs:
                   raise RuntimeError(f"{name}: ESPN scoreboard missing events array")
               print(f"{name}: feed OK ({len(payload['events'])} events today; zero is valid in offseason)")
           PY
+      - name: Sports runtime schedule and artwork regression contracts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          root=Path("app/src/main/java/com/hurricanes92xx/freedomiptv")
+          espn=(root/"sports/data/EspnScheduleProvider.kt").read_text()
+          repo=(root/"sports/data/SportsScheduleRepository.kt").read_text()
+          art=(root/"sports/data/SportsArtworkCache.kt").read_text()
+          hub=(root/"sports/data/SportsHubCache.kt").read_text()
+          models=(root/"sports/model/SportsHubModels.kt").read_text()
+          ui=(root/"MainActivity.kt").read_text()
+          checks={
+            "ESPN schedule requests each UTC date in requested interval":"dates.chunked(4)" in espn and "dates=$day" in espn,
+            "schedule output clipped to requested exact timestamps":"it.startUtcMillis in fromUtcMillis..toUtcMillis" in espn,
+            "schedule merge deduplicates and sorts":"distinctBy { game" in repo and "sortedBy { it.startUtcMillis }" in repo,
+            "last-known-good schedules survive empty upstream response":"merged.isNotEmpty()" in repo and "cached.games" in repo,
+            "combat posters cached by stable event ID":"event.id to it" in ui and "artworkCache.putAll" in ui,
+            "art cache rejects non-http URL and retains existing entries on null":"startsWith(\"https://\")" in art and "if (url.isNullOrBlank()) return" in art,
+            "Hub event model carries team logos and event poster":"homeLogo" in models and "awayLogo" in models and "posterUrl" in models,
+            "Hub cache serializes and restores all artwork fields":"put(\"homeLogo\",e.homeLogo)" in hub and "put(\"awayLogo\",e.awayLogo)" in hub and "put(\"poster\",e.posterUrl)" in hub,
+            "Hub cache dedupes and caps records":"distinctBy { it.id }" in hub and "take(250)" in hub,
+            "schedule refresh/live score UI does not discard old rows on empty live feed":"if (live.isNotEmpty()) scheduledGames = scheduledGames.map" in ui,
+          }
+          for name, ok in checks.items():
+            print(("PASS" if ok else "FAIL")+": "+name)
+          failures=[name for name,ok in checks.items() if not ok]
+          if failures: raise SystemExit("Sports regression contract failures: "+", ".join(failures))
+          print(f"Sports runtime regression contracts OK: {len(checks)} checks.")
+          PY
       - name: Build debug APK
         env:
           CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
