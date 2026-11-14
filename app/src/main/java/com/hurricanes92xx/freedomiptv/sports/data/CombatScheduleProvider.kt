@@ -43,8 +43,8 @@ class CombatScheduleProvider(
         }
         val schedule = if (promotion == CombatPromotion.UFC) runCatching { fetchEspnUfcRange(start, end) }.getOrDefault(emptyList()) else {
             val official = runCatching { fetchOfficial(promotion, start, end) }.getOrDefault(emptyList())
-            official.map { e -> e.copy(posterUrl = e.posterUrl ?: fallback.firstOrNull { it.startUtcMillis == e.startUtcMillis }?.posterUrl) } +
-                fallback.filterNot { old -> official.any { it.startUtcMillis == old.startUtcMillis && normalize(it.title)==normalize(old.title) } }
+            official.map { e -> e.copy(posterUrl = e.posterUrl ?: fallback.firstOrNull { Instant.ofEpochMilli(it.startUtcMillis).atZone(ZoneOffset.UTC).toLocalDate() == Instant.ofEpochMilli(e.startUtcMillis).atZone(ZoneOffset.UTC).toLocalDate() && (normalize(it.title).contains(normalize(e.title).take(8)) || normalize(e.title).contains(normalize(it.title).take(8))) }?.posterUrl) } +
+                fallback.filterNot { old -> official.any { Instant.ofEpochMilli(it.startUtcMillis).atZone(ZoneOffset.UTC).toLocalDate() == Instant.ofEpochMilli(old.startUtcMillis).atZone(ZoneOffset.UTC).toLocalDate() && normalize(it.title)==normalize(old.title) } }
         }
         schedule.filter { it.startUtcMillis in fromUtcMillis..toUtcMillis }
             .distinctBy { it.id }.sortedBy { it.startUtcMillis }
