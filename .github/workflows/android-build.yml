@@ -520,6 +520,29 @@ jobs:
           if failures: raise SystemExit("Sports regression contract failures: "+", ".join(failures))
           print(f"Sports runtime regression contracts OK: {len(checks)} checks.")
           PY
+      - name: Hardcoded sports calendar regression guard
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          root=Path("app/src/main/java/com/hurricanes92xx/freedomiptv/sports/data")
+          combat=(root/"CombatScheduleProvider.kt").read_text()
+          providers="\\n".join((root/name).read_text() for name in [
+              "EspnScheduleProvider.kt","CfbdScheduleProvider.kt","NcaaScheduleProvider.kt",
+              "MlbStatsApiProvider.kt","NhlWebApiProvider.kt","RoadToNationalsGymnasticsProvider.kt",
+              "SportsScheduleRepository.kt","TheSportsDbProvider.kt"])
+          # Fixed dated event rows and recurring broadcast placeholders are forbidden;
+          # season/year arithmetic and postseason round-number mappings are allowed.
+          checks={
+            "combat schedules have no fixed YYYY-MM-DD event dates": not __import__("re").search(r'20\\d{2}-\\d{2}-\\d{2}',combat),
+            "combat schedules have no manually pinned future years": not __import__("re").search(r'LocalDate\\.of\\(20\\d{2}',combat),
+            "combat schedules contain no weekly TV calendar placeholders": not any(x in combat.lower() for x in ["weekly raw placeholder","weekly dynamite placeholder","weekly impact placeholder"]),
+            "team schedules are date-window/provider driven": all(x in providers for x in ["fromUtcMillis","toUtcMillis"]) and "dates=$day" in (root/"EspnScheduleProvider.kt").read_text(),
+          }
+          for name,ok in checks.items(): print(("PASS" if ok else "FAIL")+": "+name)
+          failed=[name for name,ok in checks.items() if not ok]
+          if failed: raise SystemExit("Hardcoded calendar guard failed: "+", ".join(failed))
+          print(f"Hardcoded sports calendar guard OK: {len(checks)} checks.")
+          PY
       - name: Build debug APK
         env:
           CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
