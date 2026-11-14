@@ -267,6 +267,52 @@ jobs:
                   raise RuntimeError(f"{name}: missing position groups {sorted(expected - groups)}; got {sorted(groups)}")
               print(f"{name}: {len(games)} games, position groups {sorted(groups)} (round mapping inputs OK)")
           PY
+      - name: NCAA basketball bracket-to-dated-scoreboard completeness (2025 men/women D1-D3)
+        run: |
+          python - <<'PY'
+          import datetime, json, time, urllib.request, urllib.error
+
+          base = "https://ncaa-api.henrygd.me"
+          headers = {"User-Agent": "FreedomIPTV-CI/1.0"}
+          routes = {
+              "Men D1": "basketball-men/d1", "Men D2": "basketball-men/d2", "Men D3": "basketball-men/d3",
+              "Women D1": "basketball-women/d1", "Women D2": "basketball-women/d2", "Women D3": "basketball-women/d3",
+          }
+          def get(path):
+              last = None
+              for attempt in range(5):
+                  try:
+                      req = urllib.request.Request(base + path, headers=headers)
+                      with urllib.request.urlopen(req, timeout=30) as response:
+                          return json.loads(response.read())
+                  except (TimeoutError, urllib.error.URLError, urllib.error.HTTPError) as exc:
+                      last = exc
+                      if isinstance(exc, urllib.error.HTTPError) and exc.code not in (429,500,502,503,504): raise
+                      if attempt < 4: time.sleep(min(2**attempt*2,20))
+              raise RuntimeError(f"NCAA request failed: {path}: {last}")
+
+          for name, route in routes.items():
+              root = get(f"/brackets/{route}/2025")
+              games = [g for c in root.get("championships",[]) for g in c.get("games",[]) if isinstance(g,dict)]
+              ids = {str(g.get("contestId")) for g in games if g.get("contestId")}
+              if len(games) < 60 or len(ids) < 60:
+                  raise RuntimeError(f"{name}: expected complete 2025 bracket (~63/67 games), got {len(games)} games / {len(ids)} IDs")
+              dates = sorted({datetime.datetime.strptime(g["startDate"],"%m/%d/%Y").date()
+                              for g in games if g.get("startDate")})
+              scoreboard_ids=set(); days_with_games=0
+              for day in dates:
+                  payload=get(f"/scoreboard/{route}/{day:%Y/%m/%d}")
+                  daily=payload.get("games") or []
+                  if daily: days_with_games += 1
+                  for item in daily:
+                      game=item.get("game") or item
+                      if game.get("gameID"): scoreboard_ids.add(str(game["gameID"]))
+              overlap=len(ids & scoreboard_ids)
+              # Scoreboard may omit a small number of bracket IDs; require broad event-date parity.
+              if overlap < int(len(ids)*0.80):
+                  raise RuntimeError(f"{name}: bracket/dated scoreboard overlap {overlap}/{len(ids)} below 80%; dates={len(dates)} active={days_with_games}")
+              print(f"{name}: {len(games)} bracket games/{len(ids)} IDs; {len(dates)} dates queried ({days_with_games} active); {overlap}/{len(ids)} IDs confirmed on dated scoreboards")
+          PY
       - name: NCAA basketball live scoreboard schema smoke (D1-D3, men/women)
         run: |
           python - <<'PY'
