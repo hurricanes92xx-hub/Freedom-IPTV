@@ -58,3 +58,11 @@ These checks may touch the same sport because they test separate contracts. Do n
 ## Completion rule
 
 Mark a row **Complete** only after source data, app mapping/UI, and a representative in-season/postseason date (where applicable) are checked. Offseason empty results are expected and must not be treated as failures. Do not add follow-up commits for documentation-only status changes; batch meaningful fixes and verification.
+
+
+## Channel-to-game matching optimization (Nov 14)
+
+- Existing `ChannelMatcher.match` was network/alias-centric and recomputed normalization for each channel on every invocation; it wasn't referenced by the app's current screens.
+- Added `GameIndex`: build once after Xtream catalog refresh; normalize channel names and token postings once, then match each game against only relevant team-token candidates plus network fallback.
+- Ranking: matchup-style/both-team channel labels > both team names > confirmed EPG containing both teams within ±180 minutes > single-team/partial > broadcast network fallback. EPG time-only is never marked confirmed. Scores/reasons are explainable and bounded top-K.
+- Current work is a reusable matching engine; wiring the index into the sports event UI and measuring p50/p95 against real Xtream channel catalogs remains the next integration/performance acceptance.
