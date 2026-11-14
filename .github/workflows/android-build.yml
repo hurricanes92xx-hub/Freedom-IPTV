@@ -553,6 +553,9 @@ jobs:
           name: Freedom-IPTV-debug
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+      - name: Prepare friendly APK filename
+        if: github.event_name != 'pull_request'
+        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/Freedom-IPTV.apk
       - name: Publish latest TV install APK
         if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
@@ -560,7 +563,7 @@ jobs:
           tag_name: latest
           name: Freedom IPTV — Latest TV APK
           body: Latest successful main-branch build. Download Freedom-IPTV.apk and install it on your Android TV.
-          files: app/build/outputs/apk/debug/app-debug.apk
+          files: app/build/outputs/apk/debug/Freedom-IPTV.apk
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
