@@ -5,6 +5,7 @@ import com.hurricanes92xx.freedomiptv.sports.model.Competition
 import com.hurricanes92xx.freedomiptv.sports.data.SportsScheduleRepository
 import com.hurricanes92xx.freedomiptv.sports.data.CombatScheduleProvider
 import com.hurricanes92xx.freedomiptv.sports.data.SportsArtworkCache
+import com.hurricanes92xx.freedomiptv.sports.matching.ChannelMatcher
 import com.hurricanes92xx.freedomiptv.sports.model.CombatEvent
 import com.hurricanes92xx.freedomiptv.sports.model.CombatPromotion
 
@@ -352,6 +353,7 @@ private fun FreedomApp() {
                         val filterTerms = mapOf("Football" to Regex("football|nfl|college football", RegexOption.IGNORE_CASE), "Gymnastics" to Regex("gymnastics|gym", RegexOption.IGNORE_CASE), "Basketball" to Regex("basketball|nba|wnba", RegexOption.IGNORE_CASE), "Baseball" to Regex("baseball|mlb", RegexOption.IGNORE_CASE), "Hockey" to Regex("hockey|nhl", RegexOption.IGNORE_CASE), "Soccer" to Regex("soccer|mls|epl|champions league", RegexOption.IGNORE_CASE), "Volleyball" to Regex("volleyball", RegexOption.IGNORE_CASE), "Combat" to Regex("ufc|mma|boxing", RegexOption.IGNORE_CASE), "Wrestling" to Regex("wwe|aew|tna|wrestling", RegexOption.IGNORE_CASE))
                         val visibleSports = sports.filter { channel -> sportFilter == "All" || (channel.name + " " + (categoryNames[channel.categoryId] ?: "")).contains(filterTerms[sportFilter] ?: Regex("(?!)")) }
                         val scheduleProvider = remember { SportsScheduleRepository() }
+                        val gameChannelIndex = remember(channels) { ChannelMatcher.GameIndex(channels) }
                         var selectedCompetition by remember { mutableStateOf(Competition.NFL) }
                         var scheduleDayOffset by remember { mutableIntStateOf(0) }
                         var scheduledGames by remember { mutableStateOf<List<Game>>(emptyList()) }
