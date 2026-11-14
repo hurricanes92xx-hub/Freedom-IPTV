@@ -51,7 +51,16 @@ class SportsScheduleRepository(
             cfbd.schedule(fromUtcMillis, toUtcMillis, Competition.NCAAF_FCS)
         }.getOrDefault(emptyList()) else emptyList()
         val primary = async {
-            if (competition == Competition.NCAAF_FCS) {
+            if (competition == Competition.NCAAF_FBS) {
+                // CFBD is the detailed FBS source; ESPN is the no-key fallback when CFBD
+                // is quota-limited, unavailable, or returns no games for this window.
+                val cfbdGames = runCatching {
+                    cfbd.schedule(fromUtcMillis, toUtcMillis, Competition.NCAAF_FBS)
+                }.getOrDefault(emptyList())
+                if (cfbdGames.isNotEmpty()) cfbdGames else runCatching {
+                    espn.schedule(competition, fromUtcMillis, toUtcMillis)
+                }.getOrDefault(emptyList())
+            } else if (competition == Competition.NCAAF_FCS) {
                 if (fcsCfbd.isNotEmpty()) fcsCfbd else runCatching {
                     espn.schedule(competition, fromUtcMillis, toUtcMillis)
                 }.getOrDefault(emptyList())
@@ -93,7 +102,14 @@ class SportsScheduleRepository(
         val merged = (soccerBase + football).distinctBy { game ->
             "${game.competitionId}:${game.startUtcMillis / 60000}:${game.home.name.lowercase().replace(Regex("[^a-z0-9]"), "")}:${game.away.name.lowercase().replace(Regex("[^a-z0-9]"), "")}"
         }.sortedBy { it.startUtcMillis }
-        if (!bypassCache) scheduleCache[cacheKey] = CachedSchedule(System.currentTimeMillis(), merged)
+        if (!bypassCache) {
+            // Last-known-good protection: transient upstream failures (including CFBD
+            // 429 and NCAA/ESPN outages) must not replace a usable schedule with [].
+            if (merged.isNotEmpty()) scheduleCache[cacheKey] = CachedSchedule(System.currentTimeMillis(), merged)
+            else scheduleCache[cacheKey]?.let { cached ->
+                if (cached.games.isNotEmpty()) return@coroutineScope cached.games
+            }
+        }
         if (scheduleCache.size > 120) {
             val now = System.currentTimeMillis()
             scheduleCache.entries.removeIf { now - it.value.savedAt >= cacheTtlMillis }
