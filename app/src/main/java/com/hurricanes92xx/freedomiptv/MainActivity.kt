@@ -139,18 +139,24 @@ private fun FreedomApp() {
         server = prefs[PROVIDER_SERVER] ?: "https://"
         username = prefs[PROVIDER_USERNAME] ?: ""
         // Migrate plaintext once: write encrypted storage first, then delete legacy DataStore value.
-        val vault = CredentialVault(context)
-        val legacyPassword = prefs[LEGACY_PROVIDER_PASSWORD].orEmpty()
-        val encryptedPassword = vault.getPassword()
-        password = if (!encryptedPassword.isNullOrBlank()) {
-            if (legacyPassword.isNotBlank()) context.favoriteStore.edit { it.remove(LEGACY_PROVIDER_PASSWORD) }
-            encryptedPassword
-        } else if (legacyPassword.isNotBlank()) {
-            if (vault.savePassword(legacyPassword)) {
-                context.favoriteStore.edit { it.remove(LEGACY_PROVIDER_PASSWORD) }
-            }
-            legacyPassword
-        } else ""
+        // Credential/keystore migration must never prevent the app shell from appearing.
+        password = try {
+            val vault = CredentialVault(context)
+            val legacyPassword = prefs[LEGACY_PROVIDER_PASSWORD].orEmpty()
+            val encryptedPassword = vault.getPassword()
+            if (!encryptedPassword.isNullOrBlank()) {
+                if (legacyPassword.isNotBlank()) context.favoriteStore.edit { it.remove(LEGACY_PROVIDER_PASSWORD) }
+                encryptedPassword
+            } else if (legacyPassword.isNotBlank()) {
+                if (vault.savePassword(legacyPassword)) {
+                    context.favoriteStore.edit { it.remove(LEGACY_PROVIDER_PASSWORD) }
+                }
+                legacyPassword
+            } else ""
+        } catch (e: Exception) {
+            result = "Secure credential storage needs setup: ${e.message ?: "unavailable"}"
+            ""
+        }
         providerLoaded = true
     }
     val api = remember { XtreamApi() }
