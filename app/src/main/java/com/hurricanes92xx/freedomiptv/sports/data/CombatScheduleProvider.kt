@@ -50,6 +50,8 @@ class CombatScheduleProvider(
             .distinctBy { it.id }.sortedBy { it.startUtcMillis }
     }
 
+    private fun officialCalendarUrl(promotion: CombatPromotion): String? = when (promotion) { CombatPromotion.WWE -> "https://www.wwe.com/events"; CombatPromotion.AEW -> "https://www.allelitewrestling.com/aew-events"; CombatPromotion.TNA -> "https://tnawrestling.com/events/"; else -> null }
+
     /** ESPN scoreboard range query: dates=YYYYMMDD-YYYYMMDD. */
     private fun fetchEspnUfcRange(start: LocalDate, end: LocalDate): List<CombatEvent> {
         val dates = "${start.format(DateTimeFormatter.BASIC_ISO_DATE)}-${end.format(DateTimeFormatter.BASIC_ISO_DATE)}"
