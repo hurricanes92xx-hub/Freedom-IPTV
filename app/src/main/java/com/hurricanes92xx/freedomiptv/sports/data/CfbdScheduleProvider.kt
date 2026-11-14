@@ -40,7 +40,8 @@ class CfbdScheduleProvider(
                         .header("Authorization", "Bearer $apiKey").build()
                 ).execute()
                 val calendar = calendarResponse.use { response ->
-                    if (response.code == 429) return@runCatching emptyList<Game>()\n                    if (!response.isSuccessful) return@runCatching emptyList<Game>()
+                    if (response.code == 429) return@runCatching emptyList<Game>()
+                    if (!response.isSuccessful) return@runCatching emptyList<Game>()
                     JSONArray(response.body?.string().orEmpty())
                 }
                 val weeks = mutableSetOf<Pair<Int, String>>()
