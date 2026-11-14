@@ -61,13 +61,13 @@ object ChannelMatcher {
             val away = teamTerms(game.away.name, game.away.shortName)
             val terms = (home + away).filter { it.length >= 3 }.distinct()
             val networkCandidates = networks.flatMap { networkRows(normalize(it)) }.toSet()
-            val candidates = terms.flatMap { byToken[it].orEmpty() }.toMutableSet().apply { addAll(networkCandidates) }
+            val lookupTokens = terms.flatMap { it.split(' ') }.filter { it.length >= 3 }.distinct()\n            val candidates = lookupTokens.flatMap { byToken[it].orEmpty() }.toMutableSet().apply { addAll(networkCandidates) }
             return candidates.mapNotNull { row ->
                 val h = home.any { containsWhole(row.name, it) }
                 val a = away.any { containsWhole(row.name, it) }
                 val both = h && a
                 val matchupLabel = both && listOf(" vs ", " at ", " @ ", " - ").any(row.name::contains)
-                val epg = verifyEpg(epgByChannel[row.channel.id].orEmpty(), terms, game.startUtcMillis)
+                val epgRows = epgByChannel[row.channel.id].orEmpty().filter { it.startEpochSeconds <= game.startUtcMillis / 1000 + 180 * 60 && it.endEpochSeconds >= game.startUtcMillis / 1000 - 180 * 60 }\n                val epgMatch = epgRows.firstOrNull { p -> val title = normalize(p.title + \" \" + p.description); home.any { containsWhole(title,it) } && away.any { containsWhole(title,it) } }\n                val epg = if (epgMatch != null) EpgMatch(EpgConfidence.CONFIRMED,epgMatch.title,epgMatch.startEpochSeconds,\"Both teams in EPG near game time\") else if (epgRows.isNotEmpty()) EpgMatch(EpgConfidence.TIME_ONLY,epgRows.first().title,epgRows.first().startEpochSeconds,\"EPG overlaps game window only\") else EpgMatch(EpgConfidence.UNVERIFIED,null,null,\"No EPG overlap\")
                 var score = when { matchupLabel -> 98; both -> 92; epg.confidence == EpgConfidence.CONFIRMED -> 88; h || a -> 48; row in networkCandidates -> 35; else -> 0 }
                 val reasons = mutableListOf<String>()
                 if (both) reasons += "Both game teams in channel name"
